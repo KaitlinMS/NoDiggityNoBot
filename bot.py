@@ -8,7 +8,7 @@ async def on_ready():
   print('We have logged in as {0.user}'.format(client))
 
 @client.event
-async def on_message():
+async def on_message(message):
   # This is called every time there's a message, so make sure that it wasn't us that sent the message!
   if message.author == client.user:
     return
