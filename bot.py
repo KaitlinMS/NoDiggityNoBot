@@ -5,18 +5,19 @@ client = discord.Client();
 
 @client.event
 async def on_ready():
-  print('We have logged in as {0.user}'.format(client))
+  print('Successfully logged in as {0.user}'.format(client))
 
 @client.event
 async def on_message(message):
-    print('There was a message!')
-    print(message.content)
     if message.author == client.user:
-        print('Message from self - ignore!')
         return
 
     if message.content.startswith('hello'):
-        print('I see a hello!')
         await message.channel.send('Hello!')
+
+@client.event
+async def on_reaction_add(reaction, user):
+  if reaction.emoji == '💩' and reaction.count == 1:
+    await reaction.message.channel.send('{0} has been vetoed by ||{1}||!'.format(reaction.message.content, reaction.message.author.name))
 
 client.run('NzA4NTExMjc1NjQxOTk1Mjg1.XrYa7Q.CsHp1Qym_MWG6t233YdZvGAldcU')
