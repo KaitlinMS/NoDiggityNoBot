@@ -9,11 +9,14 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-  # This is called every time there's a message, so make sure that it wasn't us that sent the message!
-  if message.author == client.user:
-    return
+    print('There was a message!')
+    print(message.content)
+    if message.author == client.user:
+        print('Message from self - ignore!')
+        return
 
-  if message.content.startswith('$hello'):
-    await message.channel.send('Hello!')
+    if message.content.startswith('hello'):
+        print('I see a hello!')
+        await message.channel.send('Hello!')
 
 client.run('NzA4NTExMjc1NjQxOTk1Mjg1.XrYa7Q.CsHp1Qym_MWG6t233YdZvGAldcU')
