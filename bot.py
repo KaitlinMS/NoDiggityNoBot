@@ -13,6 +13,9 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    # Detect if someone has two movie choices in their message
+    if '\n' in message.content:
+      await message.author.send('It looks like you just put two movies into one message! Please split your movies into two messages.')
 
 @client.event
 async def on_reaction_add(reaction, user):
