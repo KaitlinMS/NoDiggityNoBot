@@ -9,14 +9,17 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    # The bot needs to ignore its own messages!
     if message.author == client.user:
         return
 
-    if message.content.startswith('hello'):
-        await message.channel.send('Hello!')
+    # Detect if someone has two movie choices in their message
+    if '\n' in message.content:
+      await message.author.send('It looks like you just put two movies into one message! Please split your movies into two messages.')
 
 @client.event
 async def on_reaction_add(reaction, user):
+  # Veto detection
   if reaction.emoji == '💩' and reaction.count == 1:
     await reaction.message.channel.send('{0} has been vetoed by ||{1}||!'.format(reaction.message.content, reaction.message.author.name))
 
