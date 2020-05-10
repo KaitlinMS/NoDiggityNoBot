@@ -9,14 +9,14 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    # The bot needs to ignore its own messages!
     if message.author == client.user:
         return
 
-    if message.content.startswith('hello'):
-        await message.channel.send('Hello!')
 
 @client.event
 async def on_reaction_add(reaction, user):
+  # Veto detection
   if reaction.emoji == '💩' and reaction.count == 1:
     await reaction.message.channel.send('{0} has been vetoed by ||{1}||!'.format(reaction.message.content, reaction.message.author.name))
 
