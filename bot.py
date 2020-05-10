@@ -87,6 +87,7 @@ async def on_message(message):
             # Add a movie proposal to the list of all the proposals
             # This adds the movie as a key value pair, where the key is the movie name (content of the message) and the value is a new Proposal object
             proposed_movies[message.content] = Proposal(message.content, 0, False)
+            print('Movie proposal: {}'.format(proposed_movies[message.content].movie_name))
 
 @client.event
 async def on_reaction_add(reaction, user):
