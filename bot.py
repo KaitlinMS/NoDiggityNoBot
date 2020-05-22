@@ -26,23 +26,23 @@ async def checkReactions(m):
     announcement_channel = client.get_channel(channel_general)
     number_of_poops = 0
     number_of_votes = 0
-    
+
     for r in m.reactions:
         if r.emoji == '💩':
             number_of_poops += 1
         if r.emoji == '👍':
             number_of_votes += 1
-            
+
     if number_of_poops > 0 and proposed_movies[m.content].vetoed == False:
         proposed_movies[m.content].vetoed = True
         await announcement_channel.send('{0} has been vetoed by ||{1}||!'.format(m.content, m.author.name))
     elif number_of_poops <= 0 and proposed_movies[m.content].vetoed == True:
         proposed_movies[m.content].vetoed = False
         await announcement_channel.send('{0} is no longer vetoed! The plot thickens!'.format(m.content))
-        
+
     proposed_movies[m.content].votes = number_of_votes
-    
-    
+
+
 # Now we start listening to all the different Discord events!
 
 @client.event
@@ -53,7 +53,7 @@ async def on_ready():
 async def on_message(message):
     announcement_channel = client.get_channel(channel_general)
     movie_channel = client.get_channel(channel_movie_proposals)
-    
+
     # The bot needs to ignore its own messages!
     if message.author == client.user:
         return
@@ -66,18 +66,18 @@ async def on_message(message):
             # TODO sort these outputs by vote count
             for key in proposed_movies:
                 if proposed_movies[key].vetoed == False:
-                    output.append('{} - holds {} votes'.format(proposed_movies[key].movie_name, proposed_movies[key].votes)) 
+                    output.append('{} - holds {} votes'.format(proposed_movies[key].movie_name, proposed_movies[key].votes))
                 else:
                     vetoed_movies[key] = proposed_movies[key]
-            
+
             if len(vetoed_movies) > 0:
                 output.append('-------')
                 for key in vetoed_movies:
                     output.append('{} - holds {} votes, but has been 💩 upon!'.format(proposed_movies[key].movie_name, proposed_movies[key].votes))
-                    
+
             separator = '\n'
             await announcement_channel.send(separator.join(output))
-                    
+
     #--------- MOVIE CHANNEL BEHAVIOUR ---------
     if message.channel == movie_channel:
         # Detect if someone has two movie choices in their message
@@ -87,16 +87,23 @@ async def on_message(message):
             # Add a movie proposal to the list of all the proposals
             # This adds the movie as a key value pair, where the key is the movie name (content of the message) and the value is a new Proposal object
             proposed_movies[message.content] = Proposal(message.content, 0, False)
-            print('Movie proposal: {}'.format(proposed_movies[message.content].movie_name))
+
+@client.event
+async def on_message_delete(message):
+    movie_channel = client.get_channel(channel_movie_proposals)
+
+    # Let's make sure we're in the movie channel first
+    if message.channel == movie_channel:
+        proposed_movies.pop(message.content)
 
 @client.event
 async def on_reaction_add(reaction, user):
     await checkReactions(reaction.message)
-    
+
 @client.event
 async def on_reaction_remove(reaction, user):
     await checkReactions(reaction.message)
 
-    
+
 # Run the client and init channels
 client.run(TOKEN)
