@@ -18,25 +18,28 @@ class Proposal(object):
         self.vetoed = vetoed
 
 # Update the vote/veto counts in the proposal for the corresponding message
-async def checkReactions(m):
-    announcement_channel = bot.get_channel(channel_general)
+async def checkReactions(m, user):
+    server = m.guild
+    general_channel = discord.utils.get(server.text_channels, name="general")
+
     number_of_poops = 0
     number_of_votes = 0
     
     for r in m.reactions:
         if r.emoji == '💩':
-            number_of_poops += 1
+            number_of_poops = r.count
         if r.emoji == '👍':
-            number_of_votes += 1
+            number_of_votes = r.count
             
-    if number_of_poops > 0 and proposed_movies[m.content].vetoed == False:
-        proposed_movies[m.content].vetoed = True
-        await announcement_channel.send('{0} has been vetoed by ||{1}||!'.format(m.content, m.author.name))
-    elif number_of_poops <= 0 and proposed_movies[m.content].vetoed == True:
-        proposed_movies[m.content].vetoed = False
-        await announcement_channel.send('{0} is no longer vetoed! The plot thickens!'.format(m.content))
+    if m.content in proposed_movies:
+        if number_of_poops > 0 and proposed_movies[m.content].vetoed == False:
+            proposed_movies[m.content].vetoed = True
+            await general_channel.send('{0} has been 💩\'d by ||{1}||!'.format(m.content, user.display_name))
+        elif number_of_poops <= 0 and proposed_movies[m.content].vetoed == True:
+            proposed_movies[m.content].vetoed = False
+            await general_channel.send('{0} is no longer 💩\'d! The plot thickens!'.format(m.content))
         
-    proposed_movies[m.content].votes = number_of_votes
+        proposed_movies[m.content].votes = number_of_votes
     
     
 # Now we start listening to all the different Discord events!
@@ -54,7 +57,7 @@ async def on_message(message):
     server = message.guild
     general_channel = discord.utils.get(server.text_channels, name="general")
 
-    #---------- New Movie Night Channel Creation ----------
+    #---------- NEW CHANNEL CREATION  ----------
     summon_movie_night_message = 'I summon'
 
     if message.content.find(summon_movie_night_message) >= 0:
@@ -65,26 +68,28 @@ async def on_message(message):
         await message.channel.send('{0.mention} has been created!! Have a wonderful movie night friends!! :scorpion:'.format(bot.created_channel))
         #await created_channel.delete()
 
-    #-----------------
+    #--------- MOVIE CHANNEL BEHAVIOUR ---------
     if message.channel == bot.created_channel:
-        await general_channel.send('Got one!')
-
-
-"""
-
-
-    announcement_channel = bot.get_channel(channel_general)
-    movie_channel = bot.get_channel(channel_movie_proposals)
-    
-    # The bot needs to ignore its own messages!
-    if message.author == bot.user:
-        return
+        # Detect if someone has two movie choices in their message
+        if '\n' in message.content:
+            await message.author.send('🛑👮🚓🚨 It looks like you just put two movies into one message! Please split your movies into two messages:')
+            await message.author.send(message.content)
+            await message.add_reaction('🛑')
+            await message.add_reaction('👮')
+            await message.add_reaction('🚓')
+            await message.add_reaction('🚨')
+        else:
+            # Add a movie proposal to the list of all the proposals
+            # This adds the movie as a key value pair, where the key is the movie name (content of the message) and the value is a new Proposal object
+            proposed_movies[message.content] = Proposal(message.content, 0, False)
+            print('Movie proposal: {}'.format(proposed_movies[message.content].movie_name))
 
     #--------- ANNOUNCMENT CHANNEL BEHAVIOUR ---------
-    if message.channel == announcement_channel:
-        if message.content == 'Movie Status':
+    if message.channel == general_channel:
+        lowerMessage = message.content.lower()
+        if lowerMessage == 'movie status' or lowerMessage == 'status report':
             vetoed_movies = {}
-            output = ['🌟 THE CURRENT STATUS 🌟']
+            output = ['🌟 THE CURRENT STATUS 🌟\n-------']
             # TODO sort these outputs by vote count
             for key in proposed_movies:
                 if proposed_movies[key].vetoed == False:
@@ -98,22 +103,11 @@ async def on_message(message):
                     output.append('{} - holds {} votes, but has been 💩 upon!'.format(proposed_movies[key].movie_name, proposed_movies[key].votes))
                     
             separator = '\n'
-            await announcement_channel.send(separator.join(output))
-                    
-    #--------- MOVIE CHANNEL BEHAVIOUR ---------
-    if message.channel == movie_channel:
-        # Detect if someone has two movie choices in their message
-        if '\n' in message.content:
-            await message.author.send('It looks like you just put two movies into one message! Please split your movies into two messages.')
-        else:
-            # Add a movie proposal to the list of all the proposals
-            # This adds the movie as a key value pair, where the key is the movie name (content of the message) and the value is a new Proposal object
-            proposed_movies[message.content] = Proposal(message.content, 0, False)
-            print('Movie proposal: {}'.format(proposed_movies[message.content].movie_name))"""
+            await general_channel.send(separator.join(output))
 
 @bot.event
 async def on_reaction_add(reaction, user):
-    await checkReactions(reaction.message)
+    await checkReactions(reaction.message, user)
     
 @bot.event
 async def on_reaction_remove(reaction, user):
