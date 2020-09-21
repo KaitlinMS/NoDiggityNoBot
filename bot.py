@@ -2,14 +2,10 @@ import discord
 
 TOKEN = 'NzA4NTExMjc1NjQxOTk1Mjg1.XrYa7Q.CsHp1Qym_MWG6t233YdZvGAldcU'
 
-# Create an instance of the client
-client = discord.Client();
-
-# Store functional channels based on their ID
-# This feels a bit rigid but general should never change and since the bot will create the movie channel it will store that down the road...
-# Could get 'general' channel by name or ask for the desired target name when the bot starts.
-channel_general = 708518180095655998
-channel_movie_proposals = 708534785102053408
+# Create an instance of the bot
+bot = discord.Client();
+#bot.server = bot.guild
+bot.created_channel = None
 
 # Set up our movie list (which is actually a Dictionary, not a List!)
 proposed_movies = {}
@@ -23,7 +19,7 @@ class Proposal(object):
 
 # Update the vote/veto counts in the proposal for the corresponding message
 async def checkReactions(m):
-    announcement_channel = client.get_channel(channel_general)
+    announcement_channel = bot.get_channel(channel_general)
     number_of_poops = 0
     number_of_votes = 0
     
@@ -45,17 +41,43 @@ async def checkReactions(m):
     
 # Now we start listening to all the different Discord events!
 
-@client.event
+@bot.event
 async def on_ready():
-    print('Successfully logged in as {0.user}'.format(client))
+    print('Successfully logged in as {0.user}'.format(bot))
 
-@client.event
+@bot.event
 async def on_message(message):
-    announcement_channel = client.get_channel(channel_general)
-    movie_channel = client.get_channel(channel_movie_proposals)
+    # The bot needs to ignore its own messages!
+    if message.author == bot.user:
+        return
+
+    server = message.guild
+    general_channel = discord.utils.get(server.text_channels, name="general")
+
+    #---------- New Movie Night Channel Creation ----------
+    summon_movie_night_message = 'I summon'
+
+    if message.content.find(summon_movie_night_message) >= 0:
+        new_channel_name = message.content.replace(summon_movie_night_message, '')
+        new_channel_name = new_channel_name.strip()
+
+        bot.created_channel = await server.create_text_channel(new_channel_name)
+        await message.channel.send('{0.mention} has been created!! Have a wonderful movie night friends!! :scorpion:'.format(bot.created_channel))
+        #await created_channel.delete()
+
+    #-----------------
+    if message.channel == bot.created_channel:
+        await general_channel.send('Got one!')
+
+
+"""
+
+
+    announcement_channel = bot.get_channel(channel_general)
+    movie_channel = bot.get_channel(channel_movie_proposals)
     
     # The bot needs to ignore its own messages!
-    if message.author == client.user:
+    if message.author == bot.user:
         return
 
     #--------- ANNOUNCMENT CHANNEL BEHAVIOUR ---------
@@ -87,16 +109,16 @@ async def on_message(message):
             # Add a movie proposal to the list of all the proposals
             # This adds the movie as a key value pair, where the key is the movie name (content of the message) and the value is a new Proposal object
             proposed_movies[message.content] = Proposal(message.content, 0, False)
-            print('Movie proposal: {}'.format(proposed_movies[message.content].movie_name))
+            print('Movie proposal: {}'.format(proposed_movies[message.content].movie_name))"""
 
-@client.event
+@bot.event
 async def on_reaction_add(reaction, user):
     await checkReactions(reaction.message)
     
-@client.event
+@bot.event
 async def on_reaction_remove(reaction, user):
     await checkReactions(reaction.message)
 
     
-# Run the client and init channels
-client.run(TOKEN)
+# Run the bot and init channels
+bot.run(TOKEN)
