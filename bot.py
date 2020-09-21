@@ -111,7 +111,7 @@ async def on_reaction_add(reaction, user):
     
 @bot.event
 async def on_reaction_remove(reaction, user):
-    await checkReactions(reaction.message)
+    await checkReactions(reaction.message, user)
 
     
 # Run the bot and init channels
