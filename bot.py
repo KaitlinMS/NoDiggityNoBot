@@ -90,16 +90,13 @@ async def on_message(message):
         lowerMessage = message.content.lower()
         if lowerMessage == 'movie status' or lowerMessage == 'status report':
             vetoed_movies = {}
-            output = ['------------------ 🌟 THE CURRENT STATUS 🌟 ------------------']
+            output = ['--------------------- - 🌟 THE CURRENT STATUS 🌟 - ---------------------']
 
             sorted_movie_proposals = {}
             for key in proposed_movies:
                 sorted_movie_proposals[key] = proposed_movies[key].votes
 
             sorted_movie_proposals = sorted(sorted_movie_proposals.items(), key=lambda x: x[1], reverse=True)
-            
-            await message.channel.send(proposed_movies)
-            await message.channel.send(sorted_movie_proposals)
 
             for obj in sorted_movie_proposals:
                 key = obj[0]
@@ -116,7 +113,7 @@ async def on_message(message):
                     vetoed_movies[key] = proposed_movies[key]
 
             if len(vetoed_movies) > 0:
-                output.append('------------------ 💩 HONOURABLE MENTIONS 💩 ------------------')
+                output.append('---------------------- 💩 HONOURABLE MENTIONS 💩 ----------------------')
                 poop_phrases = ['has been 💩 upon!', 
                 'ate a 💩 sandwich!', 
                 "got the ol' 💩 n' scoop!", 
@@ -148,6 +145,7 @@ async def on_message(message):
                     else:
                         output.append('💩{1}👍 - {0} - holds {1} votes, but {2}!'.format(movie_name, vote_count, poop_phrase))
                     
+            output.append('----------------- - --- --------- ----- --------- --- - -----------------')
             separator = '\n'
             await general_channel.send(separator.join(output))
 
