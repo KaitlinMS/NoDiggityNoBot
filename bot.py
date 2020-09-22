@@ -1,4 +1,5 @@
 import discord
+import random
 
 TOKEN = 'NzA4NTExMjc1NjQxOTk1Mjg1.XrYa7Q.CsHp1Qym_MWG6t233YdZvGAldcU'
 
@@ -66,7 +67,7 @@ async def on_message(message):
 
         bot.created_channel = await server.create_text_channel(new_channel_name)
         await message.channel.send('{0.mention} has been created!! Have a wonderful movie night friends!! :scorpion:'.format(bot.created_channel))
-        #await created_channel.delete()
+        print('{} has been created.'.format(bot.created_channel))
 
     #--------- MOVIE CHANNEL BEHAVIOUR ---------
     if message.channel == bot.created_channel:
@@ -89,18 +90,63 @@ async def on_message(message):
         lowerMessage = message.content.lower()
         if lowerMessage == 'movie status' or lowerMessage == 'status report':
             vetoed_movies = {}
-            output = ['🌟 THE CURRENT STATUS 🌟\n-------']
-            # TODO sort these outputs by vote count
+            output = ['------------------ 🌟 THE CURRENT STATUS 🌟 ------------------']
+
+            sorted_movie_proposals = {}
             for key in proposed_movies:
+                sorted_movie_proposals[key] = proposed_movies[key].votes
+
+            sorted_movie_proposals = sorted(sorted_movie_proposals.items(), key=lambda x: x[1], reverse=True)
+            
+            await message.channel.send(proposed_movies)
+            await message.channel.send(sorted_movie_proposals)
+
+            for obj in sorted_movie_proposals:
+                key = obj[0]
+                movie_name = proposed_movies[key].movie_name
+                vote_count = proposed_movies[key].votes
                 if proposed_movies[key].vetoed == False:
-                    output.append('{} - holds {} votes'.format(proposed_movies[key].movie_name, proposed_movies[key].votes)) 
+                    if vote_count == 0:
+                        output.append('0👍 - {0} - has received no love.'.format(movie_name))
+                    elif vote_count == 1:
+                        output.append('1👍 - {0} - holds 1 vote!'.format(movie_name))
+                    else: 
+                        output.append('{1}👍 - {0} - holds {1} votes!!'.format(movie_name, vote_count))
                 else:
                     vetoed_movies[key] = proposed_movies[key]
-            
+
             if len(vetoed_movies) > 0:
-                output.append('-------')
+                output.append('------------------ 💩 HONOURABLE MENTIONS 💩 ------------------')
+                poop_phrases = ['has been 💩 upon!', 
+                'ate a 💩 sandwich!', 
+                "got the ol' 💩 n' scoop!", 
+                'is covered in 💩!', 
+                'stepped in a big pile of 💩!', 
+                'is also full of 💩!', 
+                'got the 💩!', 
+                'got soft-served 💩!', 
+                'got flung into 💩!', 
+                'got got 💩!', 
+                'got stanked 💩!']
+                
+                sorted_vetoed_proposals = {}
                 for key in vetoed_movies:
-                    output.append('{} - holds {} votes, but has been 💩 upon!'.format(proposed_movies[key].movie_name, proposed_movies[key].votes))
+                    sorted_vetoed_proposals[key] = vetoed_movies[key].votes
+
+                sorted_vetoed_proposals = sorted(sorted_vetoed_proposals.items(), key=lambda x: x[1], reverse=True)
+
+                for obj in sorted_vetoed_proposals:
+                    key = obj[0]
+                    movie_name = proposed_movies[key].movie_name
+                    vote_count = proposed_movies[key].votes
+                    poop_phrase_index = random.randrange(len(poop_phrases))
+                    poop_phrase = poop_phrases[poop_phrase_index]
+                    if vote_count == 0:
+                        output.append('💩{}👍 - {} - has received no votes and {}!'.format(vote_count, movie_name, poop_phrase))
+                    elif vote_count == 1:
+                        output.append('💩{}👍 - {} - holds 1 vote, but {}!'.format(vote_count, movie_name, poop_phrase))
+                    else:
+                        output.append('💩{1}👍 - {0} - holds {1} votes, but {2}!'.format(movie_name, vote_count, poop_phrase))
                     
             separator = '\n'
             await general_channel.send(separator.join(output))
