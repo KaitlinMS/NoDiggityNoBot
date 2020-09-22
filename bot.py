@@ -79,17 +79,20 @@ async def on_message(message):
         lowerMessage = message.content.lower()
 
         #---------- NEW CHANNEL CREATION  ----------
-        summon_movie_night_message = 'I summon'
-        if message.content.find(summon_movie_night_message) >= 0:
-            new_channel_name = message.content.replace(summon_movie_night_message, '')
-            new_channel_name = new_channel_name.strip()
+        if bot.created_channel == None:
+            summon_movie_night_message = 'I summon'
+            if message.content.find(summon_movie_night_message) == 0:
+                new_channel_name = message.content.replace(summon_movie_night_message, '')
+                new_channel_name = new_channel_name.strip()
 
-            bot.created_channel = await server.create_text_channel(new_channel_name)
-            await message.channel.send('{0.mention} has been created!! Have a wonderful movie night friends!! :scorpion:'.format(bot.created_channel))
-            print('{} has been created.'.format(bot.created_channel))
+                bot.created_channel = await server.create_text_channel(new_channel_name)
+                await message.channel.send('{0.mention} has been created!! Have a wonderful movie night friends!! :scorpion:'.format(bot.created_channel))
+                print('{} has been created.'.format(bot.created_channel))
 
         #---------- SHORT LIST SUMMON ----------
         if lowerMessage == 'short list':
+            #await bot.created_channel.set_permissions(server.default_role, send_messages=False)
+
             short_list = {}
 
             top_vote = 0
@@ -151,17 +154,15 @@ async def on_message(message):
                 movie_name = proposed_movies[key].movie_name
                 vote_count = proposed_movies[key].votes
                 if proposed_movies[key].vetoed == False:
-                    if vote_count == 0:
-                        output.append('0👍 - {0} - has received no love.'.format(movie_name))
-                    elif vote_count == 1:
+                    if vote_count == 1:
                         output.append('1👍 - {0} - holds 1 vote!'.format(movie_name))
-                    else: 
+                    elif vote_count > 1: 
                         output.append('{1}👍 - {0} - holds {1} votes!!'.format(movie_name, vote_count))
                 else:
                     vetoed_movies[key] = proposed_movies[key]
 
             if len(vetoed_movies) > 0:
-                output.append('>>>-------------------- HONOURABLE MENTIONS --------------------<<<')
+                output.append('>>>----------------------- HONOURABLE MENTIONS -----------------------<<<')
                 poop_phrases = ['has been 💩 upon!', 
                 'ate a 💩 sandwich!', 
                 "got the ol' 💩 n' scoop!", 
@@ -186,16 +187,18 @@ async def on_message(message):
                     vote_count = proposed_movies[key].votes
                     poop_phrase_index = random.randrange(len(poop_phrases))
                     poop_phrase = poop_phrases[poop_phrase_index]
-                    if vote_count == 0:
-                        output.append('💩{}👍 - {} - has received no votes and {}!'.format(vote_count, movie_name, poop_phrase))
-                    elif vote_count == 1:
+                    if vote_count == 1:
                         output.append('💩{}👍 - {} - holds 1 vote, but {}!'.format(vote_count, movie_name, poop_phrase))
-                    else:
+                    elif vote_count > 1:
                         output.append('💩{1}👍 - {0} - holds {1} votes, but {2}!'.format(movie_name, vote_count, poop_phrase))
                     
-            output.append('>>>---------------------------------------------------------------------------<<<')
+            output.append('>>>-----------------------------------------------------------------------------<<<')
             separator = '\n'
             await general_channel.send(separator.join(output))
+
+        #---------- GIF SHIELD ----------
+        if lowerMessage == 'gif shield' or lowerMessage == 'shield' or lowerMessage == 'no paul':
+            await general_channel.send(".\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\nFREEDOM OF EXPRESSION HASN'T BEEN SUPPORTED SINCE v2019\n.\nWE APOLOGISE FOR ANY INCONVENIENCE\n.\n.\n.")
 
 @bot.event
 async def on_reaction_add(reaction, user):
