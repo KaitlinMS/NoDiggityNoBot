@@ -58,17 +58,6 @@ async def on_message(message):
     server = message.guild
     general_channel = discord.utils.get(server.text_channels, name="general")
 
-    #---------- NEW CHANNEL CREATION  ----------
-    summon_movie_night_message = 'I summon'
-
-    if message.content.find(summon_movie_night_message) >= 0:
-        new_channel_name = message.content.replace(summon_movie_night_message, '')
-        new_channel_name = new_channel_name.strip()
-
-        bot.created_channel = await server.create_text_channel(new_channel_name)
-        await message.channel.send('{0.mention} has been created!! Have a wonderful movie night friends!! :scorpion:'.format(bot.created_channel))
-        print('{} has been created.'.format(bot.created_channel))
-
     #--------- MOVIE CHANNEL BEHAVIOUR ---------
     if message.channel == bot.created_channel:
         # Detect if someone has two movie choices in their message
@@ -88,9 +77,68 @@ async def on_message(message):
     #--------- ANNOUNCMENT CHANNEL BEHAVIOUR ---------
     if message.channel == general_channel:
         lowerMessage = message.content.lower()
+
+        #---------- NEW CHANNEL CREATION  ----------
+        summon_movie_night_message = 'I summon'
+        if message.content.find(summon_movie_night_message) >= 0:
+            new_channel_name = message.content.replace(summon_movie_night_message, '')
+            new_channel_name = new_channel_name.strip()
+
+            bot.created_channel = await server.create_text_channel(new_channel_name)
+            await message.channel.send('{0.mention} has been created!! Have a wonderful movie night friends!! :scorpion:'.format(bot.created_channel))
+            print('{} has been created.'.format(bot.created_channel))
+
+        #---------- SHORT LIST SUMMON ----------
+        if lowerMessage == 'short list':
+            short_list = {}
+
+            top_vote = 0
+            for key in proposed_movies:
+                if proposed_movies[key].votes > top_vote and proposed_movies[key].vetoed == False:
+                    top_vote = proposed_movies[key].votes
+
+            print('Top vote value: {}'.format(top_vote))
+
+            for key in proposed_movies:
+                if proposed_movies[key].votes == top_vote:
+                    short_list[key] = proposed_movies[key]
+
+            if len(short_list) < 3:
+                second_top_vote = 0
+                for key in proposed_movies:
+                    if proposed_movies[key].votes > second_top_vote and proposed_movies[key].votes < top_vote and proposed_movies[key].vetoed == False:
+                        second_top_vote = proposed_movies[key].votes
+
+                print('Second-top vote value: {}'.format(second_top_vote))
+
+                for key in proposed_movies:
+                    if proposed_movies[key].votes == second_top_vote:
+                        short_list[key] = proposed_movies[key]
+
+            if len(short_list) < 3:
+                third_top_vote = 0
+                for key in proposed_movies:
+                    if proposed_movies[key].votes > third_top_vote and proposed_movies[key].votes < second_top_vote and proposed_movies[key].vetoed == False:
+                        second_top_vote = proposed_movies[key].votes
+
+                print('Third-top vote value: {}'.format(third_top_vote))
+
+                for key in proposed_movies:
+                    if proposed_movies[key].votes == third_top_vote:
+                        short_list[key] = proposed_movies[key]
+
+            output = ['🚨 --------------------- - 🚨 FINAL VOTE 🚨 - --------------------- 🚨']
+            for key in short_list:
+                movie_name = proposed_movies[key].movie_name
+                output.append(movie_name)
+
+            separator = '\n'
+            await general_channel.send(separator.join(output))
+
+        #---------- STATUS REPORT SUMMON ----------
         if lowerMessage == 'movie status' or lowerMessage == 'status report':
             vetoed_movies = {}
-            output = ['--------------------- - 🌟 THE CURRENT STATUS 🌟 - ---------------------']
+            output = ['>>>------------------ - 🌟 THE CURRENT STATUS 🌟 - ------------------<<<']
 
             sorted_movie_proposals = {}
             for key in proposed_movies:
@@ -113,7 +161,7 @@ async def on_message(message):
                     vetoed_movies[key] = proposed_movies[key]
 
             if len(vetoed_movies) > 0:
-                output.append('---------------------- 💩 HONOURABLE MENTIONS 💩 ----------------------')
+                output.append('>>>-------------------- HONOURABLE MENTIONS --------------------<<<')
                 poop_phrases = ['has been 💩 upon!', 
                 'ate a 💩 sandwich!', 
                 "got the ol' 💩 n' scoop!", 
@@ -145,7 +193,7 @@ async def on_message(message):
                     else:
                         output.append('💩{1}👍 - {0} - holds {1} votes, but {2}!'.format(movie_name, vote_count, poop_phrase))
                     
-            output.append('----------------- - --- --------- ----- --------- --- - -----------------')
+            output.append('>>>---------------------------------------------------------------------------<<<')
             separator = '\n'
             await general_channel.send(separator.join(output))
 
