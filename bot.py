@@ -235,6 +235,8 @@ async def short_list_command(message):
 
         separator = '\n'
         await bot.operations_channel.send(separator.join(output))
+        new_category = discord.utils.get(bot.server.categories, name='Lieut-zone')
+        await bot.movie_channel.edit(category=new_category)
 
 async def movie_channel_creation_and_assignment(message):
     if message.channel != bot.command_channel:
