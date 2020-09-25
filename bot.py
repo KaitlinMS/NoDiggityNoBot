@@ -109,6 +109,8 @@ async def debug_commands(message):
     if lowerMessage == "help":
         output = ['🤖 **NoDiggityNoBot Help** 🤖']
 
+        output.append("\n\n**Anything you type into #bot-loudspeaker, that bot will yell into #general!**")
+
         output.append("\n\n**AVAILABLE COMMANDS IN: *#bot-debug-output***")
         output.append("\n **Help** \n- See this text.")
         output.append("\n **Test** \n- Check if I'm alive")
