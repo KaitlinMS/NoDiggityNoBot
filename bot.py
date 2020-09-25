@@ -444,7 +444,7 @@ async def on_message(message):
     if lowerMessage == 'gif shield' or lowerMessage == 'shield' or lowerMessage == 'no paul':
         #await general_channel.send(".\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\nFREEDOM OF EXPRESSION HASN'T BEEN SUPPORTED SINCE v2019\n.\nWE APOLOGISE FOR ANY INCONVENIENCE\n.\n.\n.")
 
-        output = ["```\n \n \n \n \n \n \n \n \n \n \n \n \n "]
+        output = ["```\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n "]
         output.append(r"   |\                     /) ")
         output.append(r" /\_\\__               (_//  ")
         output.append(r"|   `>\-`     _._       //`) ")
