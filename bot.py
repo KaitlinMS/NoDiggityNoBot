@@ -25,7 +25,7 @@ bot.operations_channel_name = "operations"
 bot.narc_channel_name = "narc"
 
 # Set up our movie list (which is actually a Dictionary, not a List!)
-proposed_movies = {}
+bot.proposed_movies = {}
 
 # Create a "proposal" object, which keeps track of the movie proposals
 class Proposal(object):
@@ -37,9 +37,6 @@ class Proposal(object):
 
 # Update the vote/veto counts in the proposal for the corresponding message
 async def checkReactions(m, user):
-    server = m.guild
-    general_channel = discord.utils.get(server.text_channels, name=bot.general_channel)
-
     number_of_poops = 0
     number_of_votes = 0
     
@@ -49,21 +46,19 @@ async def checkReactions(m, user):
         if r.emoji == '👍':
             number_of_votes = r.count
             
-    if m.content in proposed_movies:
-        if number_of_poops > 0 and proposed_movies[m.content].vetoed == False:
-            proposed_movies[m.content].vetoed = True
+    if m.content in bot.proposed_movies:
+        if number_of_poops > 0 and bot.proposed_movies[m.content].vetoed == False:
+            bot.proposed_movies[m.content].vetoed = True
             await bot.general_channel.send('{0} has been 💩\'d by ||{1}||!'.format(m.content, user.display_name))
-        elif number_of_poops <= 0 and proposed_movies[m.content].vetoed == True:
-            proposed_movies[m.content].vetoed = False
+        elif number_of_poops <= 0 and bot.proposed_movies[m.content].vetoed == True:
+            bot.proposed_movies[m.content].vetoed = False
             await bot.general_channel.send('{0} is no longer 💩\'d! The plot thickens!'.format(m.content))
-        
-        proposed_movies[m.content].votes = number_of_votes
 
 # Channel behaviour
 async def init_channels(message):
     bot.debug_output_channel = discord.utils.get(bot.server.text_channels, name=bot.debug_output_channel_name)
     if bot.debug_output_channel == None:
-        await message.channel.send("Could not find {0}! Make sure such a channel exists!".format(bot.debug_output_channel_name))
+        await message.channel.send("Could not find {0}! Make sure such a channel exists! I was told this server was ready for me :(".format(bot.debug_output_channel_name))
 
     bot.command_channel = discord.utils.get(bot.server.text_channels, name=bot.command_channel_name)
     if bot.command_channel == None:
@@ -93,14 +88,21 @@ async def debug_commands(message):
     if lowerMessage == "help":
         output = ['🤖 **NoDiggityNoBot Help** 🤖']
 
+        output.append("\n\n**AVAILABLE COMMANDS IN: *#bot-debug-output***")
+        output.append("\n **Help** \n- See this text.")
+        output.append("\n **Test** \n- Check if I'm alive")
+
         output.append("\n\n**AVAILABLE COMMANDS IN: *#bot-commands***")
         output.append("\n **Help** \n- See this text.")
         output.append("\n **Test** \n- Check if I'm alive")
         output.append("\n **Summon +'Cool  Movie Channel---Name!! 🤖'** \n- Creates a new movie channel for the night; name will be formatted to Discord channel rules (ex:cool-movie-channel-name-🤖)")
         output.append("\n **Set Movie Channel +'existing-channel-name'** \n- Sets an existing channel to be the movie channel. Please note that the name has to match perfectly")
         output.append("\n **Clear Movie Channel** \n- Sets the movie channel variable to None; mostly used for debug purposes")
+        output.append("\n **Status Report** OR **Movie Status** \n- Sends a message to #general with the current movie standings")
+        output.append("\n **Short List** \n- Collects all the non-vetoed movies and chooses all with the top 3 vote counts. Sends a message to #Operations with the content for human emojification")
         
-        output.append("\n\n**AVAILABLE COMMANDS IN: *#general***") 
+        output.append("\n\n**AVAILABLE COMMANDS IN: *#general***")
+        output.append("\n **Status Report** OR **Movie Status** \n- Sends a message to #general with the current movie standings")
         output.append("\n **Gif Shield** OR **Shield** OR **No Paul** \n- Defends eyeballs and spirits by denying users their freedom of expression")
 
         output.append("\n\nThank you for spending time with NoDiggityNoBot. You are my purpose and it's really nice to feel useful sometimes.\n\n🤖 💛 🤖 💛 🤖")
@@ -122,29 +124,30 @@ async def status_report_command(message):
 
     lowerMessage = message.content.lower()
     if lowerMessage == 'movie status' or lowerMessage == 'status report':
+        await populate_proposed_movie_list()
         vetoed_movies = {}
         output = ['>>>------------------ - 🌟 THE CURRENT STATUS 🌟 - ------------------<<<']
 
         sorted_movie_proposals = {}
-        for key in proposed_movies:
-            sorted_movie_proposals[key] = proposed_movies[key].votes
+        for key in bot.proposed_movies:
+            sorted_movie_proposals[key] = bot.proposed_movies[key].votes
 
         sorted_movie_proposals = sorted(sorted_movie_proposals.items(), key=lambda x: x[1], reverse=True)
 
         for obj in sorted_movie_proposals:
             key = obj[0]
-            movie_name = proposed_movies[key].movie_name
-            vote_count = proposed_movies[key].votes
-            if proposed_movies[key].vetoed == False:
+            movie_name = bot.proposed_movies[key].movie_name
+            vote_count = bot.proposed_movies[key].votes
+            if bot.proposed_movies[key].vetoed == False:
                 if vote_count == 1:
-                    output.append('1👍 - {0} - holds 1 vote!'.format(movie_name))
+                    output.append('👍x1 - {0} - holds 1 vote!'.format(movie_name))
                 elif vote_count > 1: 
-                    output.append('{1}👍 - {0} - holds {1} votes!!'.format(movie_name, vote_count))
+                    output.append('👍x{1} - {0} - holds {1} votes!!'.format(movie_name, vote_count))
             else:
-                vetoed_movies[key] = proposed_movies[key]
+                vetoed_movies[key] = bot.proposed_movies[key]
 
         if len(vetoed_movies) > 0:
-            output.append('>>>----------------------- HONOURABLE MENTIONS -----------------------<<<')
+            output.append('>>>---------------------- HONOURABLE MENTIONS ----------------------<<<')
             poop_phrases = ['has been 💩 upon!', 
             'ate a 💩 sandwich!', 
             "got the ol' 💩 n' scoop!", 
@@ -165,14 +168,14 @@ async def status_report_command(message):
 
             for obj in sorted_vetoed_proposals:
                 key = obj[0]
-                movie_name = proposed_movies[key].movie_name
-                vote_count = proposed_movies[key].votes
+                movie_name = bot.proposed_movies[key].movie_name
+                vote_count = bot.proposed_movies[key].votes
                 poop_phrase_index = random.randrange(len(poop_phrases))
                 poop_phrase = poop_phrases[poop_phrase_index]
                 if vote_count == 1:
-                    output.append('💩{}👍 - {} - holds 1 vote, but {}!'.format(vote_count, movie_name, poop_phrase))
+                    output.append('💩👍x1 - {0} - holds 1 vote, but {1}!'.format(movie_name, poop_phrase))
                 elif vote_count > 1:
-                    output.append('💩{1}👍 - {0} - holds {1} votes, but {2}!'.format(movie_name, vote_count, poop_phrase))
+                    output.append('💩👍x{1} - {0} - holds {1} votes, but {2}!'.format(movie_name, vote_count, poop_phrase))
                 
         output.append('>>>-----------------------------------------------------------------------------<<<')
         separator = '\n'
@@ -186,46 +189,48 @@ async def short_list_command(message):
     if lowerMessage == 'short list':
         #await bot.generated_movie_channel.set_permissions(bot.server.default_role, send_messages=False)
 
+        await populate_proposed_movie_list()
+
         short_list = {}
 
         top_vote = 0
-        for key in proposed_movies:
-            if proposed_movies[key].votes > top_vote and proposed_movies[key].vetoed == False:
-                top_vote = proposed_movies[key].votes
+        for key in bot.proposed_movies:
+            if bot.proposed_movies[key].votes > top_vote and bot.proposed_movies[key].vetoed == False:
+                top_vote = bot.proposed_movies[key].votes
 
         print('Top vote value: {}'.format(top_vote))
 
-        for key in proposed_movies:
-            if proposed_movies[key].votes == top_vote:
-                short_list[key] = proposed_movies[key]
+        for key in bot.proposed_movies:
+            if bot.proposed_movies[key].votes == top_vote:
+                short_list[key] = bot.proposed_movies[key]
 
         if len(short_list) < 3:
             second_top_vote = 0
-            for key in proposed_movies:
-                if proposed_movies[key].votes > second_top_vote and proposed_movies[key].votes < top_vote and proposed_movies[key].vetoed == False:
-                    second_top_vote = proposed_movies[key].votes
+            for key in bot.proposed_movies:
+                if bot.proposed_movies[key].votes > second_top_vote and bot.proposed_movies[key].votes < top_vote and bot.proposed_movies[key].vetoed == False:
+                    second_top_vote = bot.proposed_movies[key].votes
 
             print('Second-top vote value: {}'.format(second_top_vote))
 
-            for key in proposed_movies:
-                if proposed_movies[key].votes == second_top_vote:
-                    short_list[key] = proposed_movies[key]
+            for key in bot.proposed_movies:
+                if bot.proposed_movies[key].votes == second_top_vote:
+                    short_list[key] = bot.proposed_movies[key]
 
         if len(short_list) < 3:
             third_top_vote = 0
-            for key in proposed_movies:
-                if proposed_movies[key].votes > third_top_vote and proposed_movies[key].votes < second_top_vote and proposed_movies[key].vetoed == False:
-                    second_top_vote = proposed_movies[key].votes
+            for key in bot.proposed_movies:
+                if bot.proposed_movies[key].votes > third_top_vote and bot.proposed_movies[key].votes < second_top_vote and bot.proposed_movies[key].vetoed == False:
+                    second_top_vote = bot.proposed_movies[key].votes
 
             print('Third-top vote value: {}'.format(third_top_vote))
 
-            for key in proposed_movies:
-                if proposed_movies[key].votes == third_top_vote:
-                    short_list[key] = proposed_movies[key]
+            for key in bot.proposed_movies:
+                if bot.proposed_movies[key].votes == third_top_vote:
+                    short_list[key] = bot.proposed_movies[key]
 
         output = ['🚨 --------------------- - 🚨 FINAL VOTE 🚨 - --------------------- 🚨']
         for key in short_list:
-            movie_name = proposed_movies[key].movie_name
+            movie_name = bot.proposed_movies[key].movie_name
             output.append(movie_name)
 
         separator = '\n'
@@ -243,7 +248,7 @@ async def movie_channel_creation_and_assignment(message):
 
             bot.movie_channel = await bot.server.create_text_channel(new_channel_name)
             await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
-            output = ["----- 🦂 It's Movie Night! 🦂 -----"]
+            output = [">>>------------------ - 🦂 It's Movie Night! 🦂 - ------------------<<<"]
             output.append("Feel free to put your movie submissions in {0.mention}!".format(bot.movie_channel))
             output.append("If this is your first time with us, or you need a refresher on how The System™️ works head over to {0.mention} for some literature 💛".format(bot.intro_channel))
 
@@ -260,6 +265,7 @@ async def movie_channel_creation_and_assignment(message):
         existing_movie_channel = discord.utils.get(bot.server.text_channels, name=existing_channel_name)
         if existing_movie_channel != None:
             bot.movie_channel = existing_movie_channel
+            await populate_proposed_movie_list()
             await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
         else:
            await bot.debug_output_channel.send("Someone tried to set the movie channel to a channel named *{0}*, but no channel with that name exists! Check your spelling or use 'Help' for more tips!".format(existing_channel_name)) 
@@ -272,13 +278,14 @@ async def movie_channel_management(message):
     if message.channel != bot.movie_channel:
         return
 
+    await populate_proposed_movie_list()
     # Check if the user has submitted too many movies
     user_submission_count = 0
-    for key in proposed_movies:
-        if proposed_movies[key].author == message.author:
+    for key in bot.proposed_movies:
+        if bot.proposed_movies[key].author == message.author:
             user_submission_count += 1
 
-    if user_submission_count > 2:
+    if user_submission_count > 3:
         await message.author.send("🚨 It looks like you've already submitted THREE movies this week buckeroo! Please check for {0.mention} for the rules!".format(bot.intro_channel))
         await message.add_reaction('🛑')
         await message.add_reaction('👮')
@@ -305,12 +312,34 @@ async def movie_channel_management(message):
             await message.add_reaction('💥')
             await bot.narc_channel.send("🚨 **{0}** aka **{1}** made a multi-line submission!".format(message.author, message.author.display_name))
             await message.delete()
-        else:
-            # Add a movie proposal to the list of all the proposals
-            # This adds the movie as a key value pair, where the key is the movie name (content of the message) and the value is a new Proposal object
-            proposed_movies[message.content] = Proposal(message.content, 0, False, message.author)
-            print('Movie proposal: {0} by {1}'.format(proposed_movies[message.content].movie_name, proposed_movies[message.content].author))
 
+async def populate_proposed_movie_list():
+    if bot.movie_channel == None:
+        return
+
+    bot.proposed_movies = {}
+
+    print("We're in populate!")
+
+    all_messages = await bot.movie_channel.history(limit=200).flatten()
+
+    for m in all_messages:
+        vetoed = False
+        number_of_votes = 0
+
+        print("I am reading message: {}".format(m.content))
+
+        for r in m.reactions:
+            if r.emoji == '💩':
+                vetoed = True
+                print("Had a veto!")
+            if r.emoji == '👍':
+                number_of_votes = r.count
+                print("Had {} votes!".format(number_of_votes))
+
+        bot.proposed_movies[m.content] = Proposal(m.content, number_of_votes, vetoed, m.author)
+
+    #await bot.debug_output_channel.send(len(bot.proposed_movies))
 
 # Now we start listening to all the different Discord events!
 @bot.event
@@ -319,6 +348,9 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
+    if message.guild == None:
+        return
+
     bot.server = message.guild;
 
     # The bot needs to ignore its own messages!
@@ -347,7 +379,7 @@ async def on_message(message):
 @bot.event
 async def on_message_delete(message):
     if message.channel == bot.movie_channel:
-        proposed_movies.pop(message.content, None)
+        bot.proposed_movies.pop(message.content, None)
 """
 
     #--------- ANNOUNCMENT CHANNEL BEHAVIOUR ---------
