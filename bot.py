@@ -21,7 +21,7 @@ bot.narc_channel = None
 bot.command_channel_name = "bot-commands"
 bot.debug_output_channel_name = "bot-debug-output"
 bot.loudspeaker_channel_name = "bot-loudspeaker"
-bot.general_channel_name = "fake-general"
+bot.general_channel_name = "general"
 bot.intro_channel_name = "intro"
 bot.operations_channel_name = "operations"
 bot.narc_channel_name = "narc"
@@ -260,7 +260,7 @@ async def short_list_command(message):
             await bot.operations_channel.send(key)
 
         await bot.general_channel.send("🗣️ First round voting is now closed friends! Final vote coming up sooooon!")
-        new_category = discord.utils.get(bot.server.categories, name='Lieut-zone')
+        new_category = discord.utils.get(bot.server.categories, name='lieut-zone')
         await bot.movie_channel.edit(category=new_category)
 
 async def final_vote_command(message):
