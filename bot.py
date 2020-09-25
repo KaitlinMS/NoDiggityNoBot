@@ -12,6 +12,7 @@ bot.movie_channel = None
 
 bot.command_channel = None
 bot.debug_output_channel = None
+bot.loudspeaker_channel = None
 bot.general_channel = None
 bot.intro_channel = None
 bot.operations_channel = None
@@ -19,6 +20,7 @@ bot.narc_channel = None
 
 bot.command_channel_name = "bot-commands"
 bot.debug_output_channel_name = "bot-debug-output"
+bot.loudspeaker_channel_name = "bot-loudspeaker"
 bot.general_channel_name = "fake-general"
 bot.intro_channel_name = "intro"
 bot.operations_channel_name = "operations"
@@ -26,39 +28,58 @@ bot.narc_channel_name = "narc"
 
 # Set up our movie list (which is actually a Dictionary, not a List!)
 bot.proposed_movies = {}
+bot.short_list = {}
+
+bot.final_vote_message = None
+bot.final_message_reactions = None
 
 # Create a "proposal" object, which keeps track of the movie proposals
 class Proposal(object):
-    def __init__(self, movie_name = "", votes = 0, vetoed = False, author = ""):
+    def __init__(self, movie_name = "", votes = 0, vetoed = False, author = "", emoji_icon = ""):
         self.movie_name = movie_name
         self.votes = votes
         self.vetoed = vetoed
         self.author = author
+        self.emoji_icon = emoji_icon
 
 # Update the vote/veto counts in the proposal for the corresponding message
 async def checkReactions(m, user):
-    number_of_poops = 0
-    number_of_votes = 0
-    
-    for r in m.reactions:
-        if r.emoji == '💩':
-            number_of_poops = r.count
-        if r.emoji == '👍':
-            number_of_votes = r.count
-            
-    if m.content in bot.proposed_movies:
-        if number_of_poops > 0 and bot.proposed_movies[m.content].vetoed == False:
-            bot.proposed_movies[m.content].vetoed = True
-            await bot.general_channel.send('{0} has been 💩\'d by ||{1}||!'.format(m.content, user.display_name))
-        elif number_of_poops <= 0 and bot.proposed_movies[m.content].vetoed == True:
-            bot.proposed_movies[m.content].vetoed = False
-            await bot.general_channel.send('{0} is no longer 💩\'d! The plot thickens!'.format(m.content))
+    if m.channel == bot.movie_channel:
+        number_of_poops = 0
+        number_of_votes = 0
+        
+        for r in m.reactions:
+            if r.emoji == '💩':
+                number_of_poops = r.count
+            if r.emoji == '👍':
+                number_of_votes = r.count
+                
+        if m.content in bot.proposed_movies:
+            if number_of_poops > 0 and bot.proposed_movies[m.content].vetoed == False:
+                bot.proposed_movies[m.content].vetoed = True
+                await bot.general_channel.send('{0} has been 💩\'d by ||{1}||!'.format(m.content, user.display_name))
+            elif number_of_poops <= 0 and bot.proposed_movies[m.content].vetoed == True:
+                bot.proposed_movies[m.content].vetoed = False
+                await bot.general_channel.send('{0} is no longer 💩\'d! The plot thickens!'.format(m.content))
+    elif m.channel == bot.operations_channel:
+        for key in bot.short_list:
+            if m.content == key:
+                for r in m.reactions:
+                    bot.short_list[key].emoji_icon = r.emoji
+    elif m.channel == bot.general_channel:
+        if m.content == bot.final_vote_message.content:
+            bot.final_message_reactions = m.reactions
+
 
 # Channel behaviour
 async def init_channels(message):
     bot.debug_output_channel = discord.utils.get(bot.server.text_channels, name=bot.debug_output_channel_name)
     if bot.debug_output_channel == None:
         await message.channel.send("Could not find {0}! Make sure such a channel exists! I was told this server was ready for me :(".format(bot.debug_output_channel_name))
+
+    bot.loudspeaker_channel = discord.utils.get(bot.server.text_channels, name=bot.loudspeaker_channel_name)
+    if bot.loudspeaker_channel == None:
+        await bot.debug_output_channel.send("Could not find {0}!".format(bot.loudspeaker_channel_name))
 
     bot.command_channel = discord.utils.get(bot.server.text_channels, name=bot.command_channel_name)
     if bot.command_channel == None:
@@ -100,9 +121,13 @@ async def debug_commands(message):
         output.append("\n **Clear Movie Channel** \n- Sets the movie channel variable to None; mostly used for debug purposes")
         output.append("\n **Status Report** OR **Movie Status** \n- Sends a message to #general with the current movie standings")
         output.append("\n **Short List** \n- Collects all the non-vetoed movies and chooses all with the top 3 vote counts. Sends a message to #Operations with the content for human emojification")
+        output.append("\n **Final Vote** \n- Creates a final vote in #general using the short list and supplied emojis")
+        output.append("\n **Decide** \n- Calls the winner and asks Kat for the time")
         
         output.append("\n\n**AVAILABLE COMMANDS IN: *#general***")
         output.append("\n **Status Report** OR **Movie Status** \n- Sends a message to #general with the current movie standings")
+
+        output.append("\n\n**AVAILABLE COMMANDS IN: *all channels***")
         output.append("\n **Gif Shield** OR **Shield** OR **No Paul** \n- Defends eyeballs and spirits by denying users their freedom of expression")
 
         output.append("\n\nThank you for spending time with NoDiggityNoBot. You are my purpose and it's really nice to feel useful sometimes.\n\n🤖 💛 🤖 💛 🤖")
@@ -191,7 +216,7 @@ async def short_list_command(message):
 
         await populate_proposed_movie_list()
 
-        short_list = {}
+        bot.short_list = {}
 
         top_vote = 0
         for key in bot.proposed_movies:
@@ -202,9 +227,9 @@ async def short_list_command(message):
 
         for key in bot.proposed_movies:
             if bot.proposed_movies[key].votes == top_vote and bot.proposed_movies[key].vetoed == False:
-                short_list[key] = bot.proposed_movies[key]
+                bot.short_list[key] = bot.proposed_movies[key]
 
-        if len(short_list) < 3:
+        if len(bot.short_list) < 3:
             second_top_vote = 0
             for key in bot.proposed_movies:
                 if bot.proposed_movies[key].votes > second_top_vote and bot.proposed_movies[key].votes < top_vote and bot.proposed_movies[key].vetoed == False:
@@ -214,9 +239,9 @@ async def short_list_command(message):
 
             for key in bot.proposed_movies:
                 if bot.proposed_movies[key].votes == second_top_vote and bot.proposed_movies[key].vetoed == False:
-                    short_list[key] = bot.proposed_movies[key]
+                    bot.short_list[key] = bot.proposed_movies[key]
 
-        if len(short_list) < 3:
+        if len(bot.short_list) < 3:
             third_top_vote = 0
             for key in bot.proposed_movies:
                 if bot.proposed_movies[key].votes > third_top_vote and bot.proposed_movies[key].votes < second_top_vote and bot.proposed_movies[key].vetoed == False:
@@ -226,17 +251,56 @@ async def short_list_command(message):
 
             for key in bot.proposed_movies:
                 if bot.proposed_movies[key].votes == third_top_vote and bot.proposed_movies[key].vetoed == False:
-                    short_list[key] = bot.proposed_movies[key]
+                    bot.short_list[key] = bot.proposed_movies[key]
 
-        output = ['🚨 --------------------- - 🚨 FINAL VOTE 🚨 - --------------------- 🚨']
-        for key in short_list:
-            movie_name = bot.proposed_movies[key].movie_name
-            output.append(movie_name)
+        await bot.operations_channel.send("Add an emoji as a reaction to each message below to bind them! The last emoji added to each message will be assumed as the one you want.")
+        for key in bot.short_list:
+            await bot.operations_channel.send(key)
 
-        separator = '\n'
-        await bot.operations_channel.send(separator.join(output))
+        await bot.general_channel.send("🗣️ First round voting is now closed friends! Final vote coming up sooooon!")
         new_category = discord.utils.get(bot.server.categories, name='Lieut-zone')
         await bot.movie_channel.edit(category=new_category)
+
+async def final_vote_command(message):
+    if message.channel != bot.command_channel:
+        return
+
+    lowerMessage = message.content.lower()
+    if lowerMessage == 'final vote':
+        output = ['>>>--------------------- - 🚨 FINAL VOTE 🚨 - ---------------------<<<']
+        for key in bot.short_list:
+            output.append("{0} - {1}".format(bot.short_list[key].emoji_icon, bot.short_list[key].movie_name))
+
+        separator = '\n'
+        bot.final_vote_message = await bot.general_channel.send(separator.join(output))
+
+async def decide_command(message):
+    if message.channel != bot.command_channel:
+        return
+
+    lowerMessage = message.content.lower()
+    if lowerMessage == 'decide':
+        top_reaction = None
+        for r in bot.final_message_reactions:
+            if top_reaction == None:
+                top_reaction = r
+            else: # not sure if it's safe to use an elif here in the even top_reaction = none
+                if r.count > top_reaction.count:
+                    top_reaction = r
+
+        tie_found = False
+        for r in bot.final_message_reactions:
+            if top_reaction.emoji != r.emoji:
+                if top_reaction.count == r.count:
+                    tie_found = True
+
+        if tie_found == True:
+            await bot.general_channel.send("Whelp! Looks like there's a tie folks! **The Matrix** it is!! :totallyrelievedhuman:")
+        else:
+            for key in bot.short_list:
+                if bot.short_list[key].emoji_icon == top_reaction.emoji:
+                    await bot.general_channel.send("Alright folks, looks like it's **{}** tonight!".format(bot.short_list[key].movie_name))
+                    await bot.general_channel.send("{0.mention}, what time is it?!?!".format(bot.get_user(310259502135902220)))
 
 async def movie_channel_creation_and_assignment(message):
     if message.channel != bot.command_channel:
@@ -355,12 +419,49 @@ async def on_message(message):
 
     bot.server = message.guild;
 
+    #if message.channel == bot.general_channel:
+    # Hack o'clock mother fuckers. Fuck you ASYNC
+    final_vote_message = 'FINAL VOTE'
+    final_vote_message_1 = '>>>'
+    final_vote_message_2 = '<<<'
+    if message.content.find(final_vote_message) >= 0 and message.content.find(final_vote_message_1) >= 0 and message.content.find(final_vote_message_2) >= 0:
+        for key in bot.short_list:
+            await message.add_reaction(bot.short_list[key].emoji_icon)
+
     # The bot needs to ignore its own messages!
     if message.author == bot.user:
         return
 
     if message != None:
         await init_channels(message)
+
+    if message.channel == bot.loudspeaker_channel:
+        await bot.general_channel.send(message.content)
+
+    lowerMessage = message.content.lower()
+    if lowerMessage == 'gif shield' or lowerMessage == 'shield' or lowerMessage == 'no paul':
+        #await general_channel.send(".\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\nFREEDOM OF EXPRESSION HASN'T BEEN SUPPORTED SINCE v2019\n.\nWE APOLOGISE FOR ANY INCONVENIENCE\n.\n.\n.")
+
+        output = ["```\n \n \n \n \n \n \n \n \n \n \n \n \n "]
+        output.append(r"   |\                     /) ")
+        output.append(r" /\_\\__               (_//  ")
+        output.append(r"|   `>\-`     _._       //`) ")
+        output.append(r" \ /` \\  _.-`:::`-._  //    ")
+        output.append(r"  `    \|`    :::    `|/     ")
+        output.append(r"        |     :::     |      ")
+        output.append(r"        |.....:::.....|      ")
+        output.append(r"        | GIF SHIELD! |      ")
+        output.append(r"        |     :::     |      ")
+        output.append(r"        \     :::     /      ")
+        output.append(r"         \    :::    /       ")
+        output.append(r"          `-. ::: .-'        ")
+        output.append(r"           //`:::`\\         ")
+        output.append(r"          //   '   \\        ")
+        output.append(r"         |/         \\       ")
+        output.append("\n \n \n \n \n \n \n \nFREEDOM OF EXPRESSION HASN'T BEEN SUPPORTED SINCE v2019\n \nWE APOLOGISE FOR ANY INCONVENIENCE\n \n \n```")
+
+        separator = '\n'
+        await message.channel.send(separator.join(output))
 
     if message != None:
         await debug_commands(message)
@@ -377,22 +478,17 @@ async def on_message(message):
     if message != None:
         await short_list_command(message)
 
+    if message != None:
+        await final_vote_command(message)
+
+    if message != None:
+        await decide_command(message)
 
 @bot.event
 async def on_message_delete(message):
     if message.channel == bot.movie_channel:
         bot.proposed_movies.pop(message.content, None)
-"""
 
-    #--------- ANNOUNCMENT CHANNEL BEHAVIOUR ---------
-
-
-        
-
-        #---------- GIF SHIELD ----------
-        if lowerMessage == 'gif shield' or lowerMessage == 'shield' or lowerMessage == 'no paul':
-            await general_channel.send(".\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\nFREEDOM OF EXPRESSION HASN'T BEEN SUPPORTED SINCE v2019\n.\nWE APOLOGISE FOR ANY INCONVENIENCE\n.\n.\n.")
-"""
 @bot.event
 async def on_reaction_add(reaction, user):
     await checkReactions(reaction.message, user)
