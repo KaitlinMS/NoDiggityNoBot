@@ -302,7 +302,7 @@ async def decide_command(message):
             for key in bot.short_list:
                 if bot.short_list[key].emoji_icon == top_reaction.emoji:
                     await bot.general_channel.send("Alright folks, looks like it's **{}** tonight!".format(bot.short_list[key].movie_name))
-                    await bot.general_channel.send("{0.mention}, what time is it?!?!".format(bot.get_user(310259502135902220)))
+                    await bot.general_channel.send("{0.mention}, what time is it?!?!".format(bot.get_user(639547102023647233)))
 
 async def movie_channel_creation_and_assignment(message):
     if message.channel != bot.command_channel:
