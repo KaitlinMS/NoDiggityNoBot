@@ -201,7 +201,7 @@ async def short_list_command(message):
         print('Top vote value: {}'.format(top_vote))
 
         for key in bot.proposed_movies:
-            if bot.proposed_movies[key].votes == top_vote:
+            if bot.proposed_movies[key].votes == top_vote and bot.proposed_movies[key].vetoed == False:
                 short_list[key] = bot.proposed_movies[key]
 
         if len(short_list) < 3:
@@ -213,7 +213,7 @@ async def short_list_command(message):
             print('Second-top vote value: {}'.format(second_top_vote))
 
             for key in bot.proposed_movies:
-                if bot.proposed_movies[key].votes == second_top_vote:
+                if bot.proposed_movies[key].votes == second_top_vote and bot.proposed_movies[key].vetoed == False:
                     short_list[key] = bot.proposed_movies[key]
 
         if len(short_list) < 3:
@@ -225,7 +225,7 @@ async def short_list_command(message):
             print('Third-top vote value: {}'.format(third_top_vote))
 
             for key in bot.proposed_movies:
-                if bot.proposed_movies[key].votes == third_top_vote:
+                if bot.proposed_movies[key].votes == third_top_vote and bot.proposed_movies[key].vetoed == False:
                     short_list[key] = bot.proposed_movies[key]
 
         output = ['🚨 --------------------- - 🚨 FINAL VOTE 🚨 - --------------------- 🚨']
