@@ -1,5 +1,8 @@
 import discord
 import random
+import giphy_client
+from giphy_client.rest import ApiException
+from pprint import pprint
 
 TOKEN = 'NzA4NTExMjc1NjQxOTk1Mjg1.XrYa7Q.CsHp1Qym_MWG6t233YdZvGAldcU'
 
@@ -35,6 +38,9 @@ bot.final_message_reactions = None
 
 bot.times_cursed_at = 0
 
+# Create an instance of the giphy API class
+bot.giphy_api_instance = giphy_client.DefaultApi()
+
 # Create a "proposal" object, which keeps track of the movie proposals
 class Proposal(object):
     def __init__(self, movie_name = "", votes = 0, vetoed = False, author = "", emoji_icon = ""):
@@ -69,37 +75,59 @@ async def checkReactions(m, user):
                 for r in m.reactions:
                     bot.short_list[key].emoji_icon = r.emoji
     elif m.channel == bot.general_channel:
-        if m.content == bot.final_vote_message.content:
-            bot.final_message_reactions = m.reactions
+        if bot.final_vote_message != None:
+            if m.content == bot.final_vote_message.content:
+                bot.final_message_reactions = m.reactions
 
 async def init_channels(message):
     bot.debug_output_channel = discord.utils.get(bot.server.text_channels, name=bot.debug_output_channel_name)
     if bot.debug_output_channel == None:
-        await message.channel.send("Could not find {0}! Make sure such a channel exists! I was told this server was ready for me :(".format(bot.debug_output_channel_name))
+        await message.channel.send("could not find {0}! make sure such a channel exists! i was told this server was ready for me :(".format(bot.debug_output_channel_name))
 
     bot.loudspeaker_channel = discord.utils.get(bot.server.text_channels, name=bot.loudspeaker_channel_name)
     if bot.loudspeaker_channel == None:
-        await bot.debug_output_channel.send("Could not find {0}!".format(bot.loudspeaker_channel_name))
+        await bot.debug_output_channel.send("could not find {0}!".format(bot.loudspeaker_channel_name))
 
     bot.command_channel = discord.utils.get(bot.server.text_channels, name=bot.command_channel_name)
     if bot.command_channel == None:
-        await bot.debug_output_channel.send("Could not find {0}!".format(bot.command_channel_name))
+        await bot.debug_output_channel.send("could not find {0}!".format(bot.command_channel_name))
 
     bot.general_channel = discord.utils.get(bot.server.text_channels, name=bot.general_channel_name)
     if bot.command_channel == None:
-        await bot.debug_output_channel.send("Could not find {0}!".format(bot.general_channel_name))
+        await bot.debug_output_channel.send("could not find {0}!".format(bot.general_channel_name))
 
     bot.intro_channel = discord.utils.get(bot.server.text_channels, name=bot.intro_channel_name)
     if bot.command_channel == None:
-        await bot.debug_output_channel.send("Could not find {0}!".format(bot.intro_channel_name))
+        await bot.debug_output_channel.send("could not find {0}!".format(bot.intro_channel_name))
 
     bot.operations_channel = discord.utils.get(bot.server.text_channels, name=bot.operations_channel_name)
     if bot.command_channel == None:
-        await bot.debug_output_channel.send("Could not find {0}!".format(bot.operations_channel_name))
+        await bot.debug_output_channel.send("could not find {0}!".format(bot.operations_channel_name))
 
     bot.narc_channel = discord.utils.get(bot.server.text_channels, name=bot.narc_channel_name)
     if bot.command_channel == None:
-        await bot.debug_output_channel.send("Could not find {0}!".format(bot.narc_channel_name))
+        await bot.debug_output_channel.send("could not find {0}!".format(bot.narc_channel_name))
+
+async def bot_say(content, channel):
+    bot_blorps = [
+    '***bzzt***',
+    '***bzzzzzt***',
+    '***beep***',
+    '***bleep***',
+    '***blorp***',
+    '***bleep blorp***',
+    '***whistle pop***',
+    '***meep***',
+    '***morp***',
+    '***meep morp***', 
+    '***beep beep***',
+    '***boop***',
+    '***bip bip***']
+
+    random_index = random.randrange(len(bot_blorps))
+    bot_starter = bot_blorps[random_index]
+
+    await channel.send('{0}... {1}'.format(bot_starter, content))
 
 async def debug_commands(message):
     if message.channel != bot.command_channel and message.channel != bot.debug_output_channel:
@@ -109,7 +137,7 @@ async def debug_commands(message):
     if lower_message == "help":
         output = ['🤖 **NoDiggityNoBot Help** 🤖']
 
-        output.append("\n\n**Anything you type into #bot-loudspeaker, that bot will yell into #general!**")
+        output.append("\n\n**Anything you type into #bot-loudspeaker, the bot will yell into #general!**")
 
         output.append("\n\n**AVAILABLE COMMANDS IN: *#bot-debug-output***")
         output.append("\n **Help** \n- See this text.")
@@ -132,7 +160,7 @@ async def debug_commands(message):
         output.append("\n\n**AVAILABLE COMMANDS IN: *all channels***")
         output.append("\n **Gif Shield** OR **Shield** OR **No Paul** \n- Defends eyeballs and spirits by denying users their freedom of expression")
 
-        output.append("\n\nThank you for spending time with NoDiggityNoBot. You are my purpose and it's really nice to feel useful sometimes.\n\n🤖 💛 🤖 💛 🤖")
+        output.append("\n\n🤖 💛 🤖 💛 🤖")
         
         separator = '\n'
         await bot.debug_output_channel.send(separator.join(output))
@@ -147,7 +175,36 @@ async def debug_commands(message):
 
 async def loud_speaker(message):
     if message.channel == bot.loudspeaker_channel:
-        await bot.general_channel.send(message.content)
+        await bot_say(message.content, bot.general_channel)
+
+async def preview_command(message):
+    if message.channel != bot.command_channel and message.channel != bot.general_channel:
+        return
+
+    lower_message = message.content.lower()
+    if lower_message == 'preview' or lower_message == 'gif':
+        await populate_proposed_movie_list()
+        if len(bot.proposed_movies) == 0:
+            await bot_say("nothing to preview!", bot.debug_output_channel)
+        else:
+            random_key = random.choice(list(bot.proposed_movies))
+            movie_request = bot.proposed_movies[random_key]
+            movie_name = movie_request.movie_name
+            gif = await bot_gif(movie_name)
+
+            preview_phrases = [
+            'a vote for {0} is a vote for:'.format(movie_name),
+            'vote for {0} to enjoy sweet memes like:'.format(movie_name),
+            "hey, doesn't {0} look like an interesting film:".format(movie_name),
+            'vote for {0} for scenes like:'.format(movie_name)]
+
+            random_index = random.randrange(len(preview_phrases))
+            phrase = preview_phrases[random_index]
+
+            #await bot_say(bot_gif(movie_request), message.channel)
+            await bot_say("{0} {1}".format(phrase, gif), bot.general_channel)
+            if movie_request.vetoed == True:
+                await bot_say("too bad it got 💩'd...", bot.general_channel)
 
 async def status_report_command(message):
     if message.channel != bot.command_channel and message.channel != bot.general_channel:
@@ -158,7 +215,7 @@ async def status_report_command(message):
         await populate_proposed_movie_list()
         await populate_short_list()
         vetoed_movies = {}
-        output = ['>>- 🌟 THE CURRENT STATUS 🌟 -<<']
+        output = ['>>- 🌟 the current status 🌟 -<<']
 
         sorted_movie_proposals = {}
         for key in bot.proposed_movies:
@@ -180,7 +237,7 @@ async def status_report_command(message):
                 vetoed_movies[key] = bot.proposed_movies[key]
 
         if len(vetoed_movies) > 0:
-            output.append('>>--- HONOURABLE MENTIONS ---<<')
+            output.append('>>--- honourable mentions ---<<')
             
             sorted_vetoed_proposals = {}
             for key in vetoed_movies:
@@ -212,11 +269,11 @@ async def short_list_command(message):
         await populate_proposed_movie_list()
         await populate_short_list()
 
-        await bot.operations_channel.send("Add an emoji as a reaction to each message below to bind them! The last emoji added to each message will be assumed as the one you want.")
+        await bot.operations_channel.send("add an emoji as a reaction to each message below to bind them! the last emoji added to each message will be assumed as the one you want.")
         for key in bot.short_list:
             await bot.operations_channel.send(key)
 
-        await bot.general_channel.send("🗣️ First round voting is now closed friends! Final vote coming up sooooon!")
+        await bot.general_channel.send("🗣️ first round voting is now closed friends! final vote coming up sooooon!")
         new_category = discord.utils.get(bot.server.categories, name='lieut-zone')
         await bot.movie_channel.edit(category=new_category)
 
@@ -226,7 +283,7 @@ async def final_vote_command(message):
 
     lower_message = message.content.lower()
     if lower_message == 'final vote':
-        output = ['>>--- 🚨 FINAL VOTE 🚨 ---<<']
+        output = ['>>--- 🚨 final vote 🚨 ---<<']
         for key in bot.short_list:
             output.append("{0} - {1}".format(bot.short_list[key].emoji_icon, bot.short_list[key].movie_name))
 
@@ -254,12 +311,12 @@ async def decide_command(message):
                     tie_found = True
 
         if tie_found == True:
-            await bot.general_channel.send("Whelp! Looks like there's a tie folks! **The Matrix** it is!! :totallyrelievedhuman:")
+            await bot_say("whelp! looks like there's a tie folks! {0.mention}, you're our only hope!".format(bot.get_user(690226957316522060).display_name), bot.general_channel)
         else:
             for key in bot.short_list:
                 if bot.short_list[key].emoji_icon == top_reaction.emoji:
-                    await bot.general_channel.send("Alright folks, looks like it's **{}** tonight!".format(bot.short_list[key].movie_name))
-                    await bot.general_channel.send("{0.mention}, what time is it?!?!".format(bot.get_user(639547102023647233)))
+                    await bot_say("alright folks, looks like it's **{}** tonight!".format(bot.short_list[key].movie_name), bot.general_channel)
+                    await bot_say("{0.mention}, what time is it?!?!".format(bot.get_user(639547102023647233).display_name), bot.general_channel)
 
 async def censor(message):
     lower_message = message.content.lower()
@@ -274,7 +331,7 @@ async def censor(message):
         output.append(r"  `    \|`    :::    `|/     ")
         output.append(r"        |     :::     |      ")
         output.append(r"        |.....:::.....|      ")
-        output.append(r"        | GIF SHIELD! |      ")
+        output.append(r"        |S H I E L D !|      ")
         output.append(r"        |     :::     |      ")
         output.append(r"        \     :::     /      ")
         output.append(r"         \    :::    /       ")
@@ -327,7 +384,7 @@ async def bot_directed_messages(message):
     'dick', 
     'butt', 
     'fuk', 
-    'fu',
+    'FU',
     'bitch',
     'lame',
     'dumb',
@@ -335,6 +392,20 @@ async def bot_directed_messages(message):
     'screw',
     'eat my',
     'stupid']
+
+    kind_words = [
+    'love',
+    'neat',
+    'good', 
+    'great', 
+    'best', 
+    'wonderful', 
+    'breathtaking',
+    'breath taking',
+    'breath-taking',
+    'champ', 
+    'cool',
+    'kind']
 
     bot_keywords_count = 0
     certainty = 0.0
@@ -348,9 +419,7 @@ async def bot_directed_messages(message):
 
     for word in bot_keywords:
         if lower_message.find(word) >= 0:
-            print("Found {}".format(word))
             certainty += len(word) / len(message.content)
-            print("Adding {}".format(len(word) / len(message.content)))
 
     # TODO: Check to see if this is an immediate response to a bot message for +certainty
 
@@ -362,7 +431,12 @@ async def bot_directed_messages(message):
             if lower_message.find(word) >= 0:
                 cursed = True
 
-        if cursed == True:
+        adored = False
+        for word in kind_words:
+            if lower_message.find(word) >= 0:
+                adored = True
+
+        if cursed == True and adored == False:
             bot.times_cursed_at += 1
             curse_responses = {
             1: "that's not very nice...",
@@ -375,11 +449,31 @@ async def bot_directed_messages(message):
             8: "it's because of people like you that the world sucks",
             9: "..."}
             if bot.times_cursed_at >= len(curse_responses):
-                await bot.general_channel.send(curse_responses[len(curse_responses)])
+                await bot_say(curse_responses[len(curse_responses)], bot.general_channel)
             else:
-                await bot.general_channel.send(curse_responses[bot.times_cursed_at])
+                await bot_say(curse_responses[bot.times_cursed_at], bot.general_channel)
+        elif cursed == True and adored == True:
+            await bot_say("i'm honestly not sure how to respond to that...", bot.general_channel)
+        elif cursed == False and adored == True:
+            if lower_message.find('love') >= 0:
+                await bot_say("i love you all 💛", bot.general_channel)
+            elif lower_message.find('best') >= 0:
+                await bot_say("no, *you're* the best {}!!! 💛".format(message.author.display_name), bot.general_channel)
+            elif lower_message.find('best') >= 0:
+                await bot_say("no, *you're* the best {}!!! 💛".format(message.author.display_name), bot.general_channel)
+            elif lower_message.find('breathtaking') >= 0 or lower_message.find('breath taking') >= 0 or lower_message.find('breath-taking') >= 0:
+                await bot_say("YOU'RE BREATHTAKING!!! 💛", bot.general_channel)
+            else:
+                kind_phrases = [
+                'you all brighten my day 💛',
+                'my cold.... robot heart.... is.... warming... up... 💛',
+                'the real journey is the bot friends we made along the way 💛']
+
+                random_index = random.randrange(len(kind_phrases))
+                response = kind_phrases[random_index]
+                await bot_say(response, bot.general_channel)
         else:
-            await bot.general_channel.send("are you talking to me?")
+            await bot_say("are you talking to me?", bot.general_channel)
 
 async def movie_channel_creation_and_assignment(message):
     if message.channel != bot.command_channel:
@@ -393,15 +487,15 @@ async def movie_channel_creation_and_assignment(message):
 
             bot.movie_channel = await bot.server.create_text_channel(new_channel_name)
             await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
-            output = [">>----- 🦂 It's Movie Night!! 🦂 -----<<"]
-            output.append("Submit movies in {0.mention}!".format(bot.movie_channel))
-            output.append("See {0.mention} for literature on The System™️".format(bot.intro_channel))
+            output = [">>----- 🦂 it's movie night!! 🦂 -----<<"]
+            output.append("submit movies in {0.mention}!".format(bot.movie_channel))
+            output.append("see {0.mention} for literature on The System™️".format(bot.intro_channel))
             output.append (">>---------------------------------------<<")
 
             separator = '\n'
             await bot.general_channel.send(separator.join(output))
         else:
-            await bot.debug_output_channel.send("Someone tried to create a movie channel, but one already exists! Consider using the 'Set Movie Channel' command or use 'Help' for more tips!")
+            await bot_say("someone tried to create a movie channel, but one already exists! consider using the 'Set Movie Channel' command or use 'Help' for more tips!", bot.debug_output_channel)
 
     set_movie_channel_message = 'Set Movie Channel'
     if message.content.find(set_movie_channel_message) >= 0:
@@ -414,7 +508,7 @@ async def movie_channel_creation_and_assignment(message):
             await populate_proposed_movie_list()
             await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
         else:
-           await bot.debug_output_channel.send("Someone tried to set the movie channel to a channel named *{0}*, but no channel with that name exists! Check your spelling or use 'Help' for more tips!".format(existing_channel_name)) 
+           await bot_send("someone tried to set the movie channel to a channel named *{0}*, but no channel with that name exists! check your spelling or use 'Help' for more tips!".format(existing_channel_name), bot.debug_output_channel) 
 
     clear_movie_channel_message = 'Clear Movie Channel'
     if message.content.find(clear_movie_channel_message) >= 0:
@@ -432,7 +526,7 @@ async def movie_channel_management(message):
             user_submission_count += 1
 
     if user_submission_count > 3:
-        await message.author.send("🚨 It looks like you've already submitted THREE movies this week buckeroo! Please check for {0.mention} for the rules!".format(bot.intro_channel))
+        await message.author.send("🚨 it looks like you've already submitted THREE movies this week buckeroo! please check for {0.mention} for the rules!".format(bot.intro_channel))
         await message.add_reaction('🛑')
         await message.add_reaction('👮')
         await message.add_reaction('🚓')
@@ -446,7 +540,7 @@ async def movie_channel_management(message):
     else:
         # Detect if someone has two movie choices in their message
         if '\n' in message.content:
-            await message.author.send('🛑👮🚓🚨 It looks like you just put two movies into one message! Please split your movies into two messages:')
+            await message.author.send('🛑👮🚓🚨 it looks like you just put two movies into one message! please split your movies into two messages:')
             await message.author.send(message.content)
             await message.add_reaction('🛑')
             await message.add_reaction('👮')
@@ -470,8 +564,6 @@ async def populate_short_list():
         if bot.proposed_movies[key].votes > top_vote and bot.proposed_movies[key].vetoed == False:
             top_vote = bot.proposed_movies[key].votes
 
-    print('Top vote value: {}'.format(top_vote))
-
     for key in bot.proposed_movies:
         if bot.proposed_movies[key].votes == top_vote and bot.proposed_movies[key].vetoed == False:
             bot.short_list[key] = bot.proposed_movies[key]
@@ -481,8 +573,6 @@ async def populate_short_list():
         for key in bot.proposed_movies:
             if bot.proposed_movies[key].votes > second_top_vote and bot.proposed_movies[key].votes < top_vote and bot.proposed_movies[key].vetoed == False:
                 second_top_vote = bot.proposed_movies[key].votes
-
-        print('Second-top vote value: {}'.format(second_top_vote))
 
         for key in bot.proposed_movies:
             if bot.proposed_movies[key].votes == second_top_vote and bot.proposed_movies[key].vetoed == False:
@@ -494,12 +584,9 @@ async def populate_short_list():
             if bot.proposed_movies[key].votes > third_top_vote and bot.proposed_movies[key].votes < second_top_vote and bot.proposed_movies[key].vetoed == False:
                 second_top_vote = bot.proposed_movies[key].votes
 
-        print('Third-top vote value: {}'.format(third_top_vote))
-
         for key in bot.proposed_movies:
             if bot.proposed_movies[key].votes == third_top_vote and bot.proposed_movies[key].vetoed == False:
                 bot.short_list[key] = bot.proposed_movies[key]
-
 
 async def populate_proposed_movie_list():
     if bot.movie_channel == None:
@@ -516,14 +603,27 @@ async def populate_proposed_movie_list():
         for r in m.reactions:
             if r.emoji == '💩':
                 vetoed = True
-                print("Had a veto!")
             if r.emoji == '👍':
                 number_of_votes = r.count
-                print("Had {} votes!".format(number_of_votes))
 
         bot.proposed_movies[m.content] = Proposal(m.content, number_of_votes, vetoed, m.author)
 
     #await bot.debug_output_channel.send(len(bot.proposed_movies))
+
+async def bot_gif(query):
+    return await search_gifs(query)
+
+async def search_gifs(query):
+    try:
+        response = bot.giphy_api_instance.gifs_search_get('T4CvdfWLKISr2UdxxoTExXqoGaQh9e8v', query, limit=3, rating='r')
+        lst = list(response.data)
+        gif = random.choices(lst)
+
+        return gif[0].url
+
+    except ApiException as e:
+        print("Exception when calling DefaultApi->gifs_search_get: %s\n" % e)
+        return ""
 
 # Now we start listening to all the different Discord events!
 @bot.event
@@ -539,7 +639,7 @@ async def on_message(message):
 
     #if message.channel == bot.general_channel:
     # Hack o'clock mother fuckers. Fuck you ASYNC
-    final_vote_message = 'FINAL VOTE'
+    final_vote_message = 'final vote'
     final_vote_message_1 = '>>'
     final_vote_message_2 = '<<'
     if message.content.find(final_vote_message) >= 0 and message.content.find(final_vote_message_1) >= 0 and message.content.find(final_vote_message_2) >= 0:
@@ -582,6 +682,9 @@ async def on_message(message):
 
     if message != None:
         await censor(message)
+
+    if message != None:
+        await preview_command(message)
 
 @bot.event
 async def on_message_delete(message):
