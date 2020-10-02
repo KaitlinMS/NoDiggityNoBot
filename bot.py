@@ -56,11 +56,16 @@ async def checkReactions(m, user):
         number_of_poops = 0
         number_of_votes = 0
         
+        highest_emoji_count = 0
+
         for r in m.reactions:
             if r.emoji == '💩':
                 number_of_poops = r.count
-            if r.emoji == '👍':
-                number_of_votes = r.count
+            else:
+                if r.count > highest_emoji_count:
+                    highest_emoji_count = r.count
+
+        number_of_votes = highest_emoji_count
                 
         if m.content in bot.proposed_movies:
             if number_of_poops > 0 and bot.proposed_movies[m.content].vetoed == False:
@@ -254,7 +259,7 @@ async def status_report_command(message):
                 elif vote_count > 1:
                     output.append('💩👍x{1} - {0}'.format(movie_name, vote_count))
                 
-        output.append('>>---------------------------------------<<')
+        output.append('>>--------------------------------<<')
         separator = '\n'
         await bot.general_channel.send(separator.join(output))
 
