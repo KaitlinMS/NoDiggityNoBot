@@ -318,12 +318,12 @@ async def decide_command(message):
                     tie_found = True
 
         if tie_found == True:
-            await bot_say("whelp! looks like there's a tie folks! {0.mention}, you're our only hope!".format(bot.get_user(690226957316522060).display_name), bot.general_channel)
+            await bot_say("whelp! looks like there's a tie folks! {0.mention}, you're our only hope!".format(bot.get_user(690226957316522060)), bot.general_channel)
         else:
             for key in bot.short_list:
                 if bot.short_list[key].emoji_icon == top_reaction.emoji:
                     await bot_say("alright folks, looks like it's **{}** tonight!".format(bot.short_list[key].movie_name), bot.general_channel)
-                    await bot_say("{0.mention}, what time is it?!?!".format(bot.get_user(639547102023647233).display_name), bot.general_channel)
+                    await bot_say("{0.mention}, what time is it?!?!".format(bot.get_user(639547102023647233)), bot.general_channel)
 
 async def censor(message):
     lower_message = message.content.lower()
@@ -464,8 +464,6 @@ async def bot_directed_messages(message):
         elif cursed == False and adored == True:
             if lower_message.find('love') >= 0:
                 await bot_say("i love you all 💛", bot.general_channel)
-            elif lower_message.find('best') >= 0:
-                await bot_say("no, *you're* the best {}!!! 💛".format(message.author.display_name), bot.general_channel)
             elif lower_message.find('best') >= 0:
                 await bot_say("no, *you're* the best {}!!! 💛".format(message.author.display_name), bot.general_channel)
             elif lower_message.find('breathtaking') >= 0 or lower_message.find('breath taking') >= 0 or lower_message.find('breath-taking') >= 0:
