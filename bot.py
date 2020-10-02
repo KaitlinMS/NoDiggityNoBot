@@ -198,10 +198,10 @@ async def preview_command(message):
             gif = await bot_gif(movie_name)
 
             preview_phrases = [
-            'a vote for {0} is a vote for:'.format(movie_name),
-            'vote for {0} to enjoy sweet memes like:'.format(movie_name),
-            "hey, doesn't {0} look like an interesting film:".format(movie_name),
-            'vote for {0} for scenes like:'.format(movie_name)]
+            'a vote for **{0}** is a vote for:'.format(movie_name),
+            'vote for **{0}** to enjoy sweet memes like:'.format(movie_name),
+            "hey, doesn't **{0}** look like an interesting film:".format(movie_name),
+            'vote for **{0}** for scenes like:'.format(movie_name)]
 
             random_index = random.randrange(len(preview_phrases))
             phrase = preview_phrases[random_index]
@@ -232,12 +232,14 @@ async def status_report_command(message):
             key = obj[0]
             movie_name = bot.proposed_movies[key].movie_name
             vote_count = bot.proposed_movies[key].votes
+            emoji_icon = bot.proposed_movies[key].emoji_icon
+
             if bot.proposed_movies[key].vetoed == False:
                 if key in bot.short_list:
                     if vote_count == 1:
-                        output.append('👍x1 - {0}'.format(movie_name))
+                        output.append('{0}x1 - {1}'.format(emoji_icon, movie_name))
                     elif vote_count > 1: 
-                        output.append('👍x{1} - {0}'.format(movie_name, vote_count))
+                        output.append('{0}x{2} - {1}'.format(emoji_icon, movie_name, vote_count))
             else:
                 vetoed_movies[key] = bot.proposed_movies[key]
 
@@ -255,9 +257,9 @@ async def status_report_command(message):
                 movie_name = bot.proposed_movies[key].movie_name
                 vote_count = bot.proposed_movies[key].votes
                 if vote_count == 1:
-                    output.append('💩👍x1 - {0}'.format(movie_name))
+                    output.append('💩{0}x1 - {1}'.format(emoji_icon, movie_name))
                 elif vote_count > 1:
-                    output.append('💩👍x{1} - {0}'.format(movie_name, vote_count))
+                    output.append('💩{0}x{2} - {1}'.format(emoji_icon, movie_name, vote_count))
                 
         output.append('>>--------------------------------<<')
         separator = '\n'
@@ -605,13 +607,20 @@ async def populate_proposed_movie_list():
         vetoed = False
         number_of_votes = 0
 
+        emoji_icon = '👍'
+        highest_emoji_count = 0
+
         for r in m.reactions:
             if r.emoji == '💩':
                 vetoed = True
-            if r.emoji == '👍':
-                number_of_votes = r.count
+            else:
+                if r.count > highest_emoji_count:
+                    highest_emoji_count = r.count
+                    emoji_icon = r.emoji
 
-        bot.proposed_movies[m.content] = Proposal(m.content, number_of_votes, vetoed, m.author)
+        number_of_votes = highest_emoji_count
+
+        bot.proposed_movies[m.content] = Proposal(m.content, number_of_votes, vetoed, m.author, emoji_icon)
 
     #await bot.debug_output_channel.send(len(bot.proposed_movies))
 
