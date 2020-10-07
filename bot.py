@@ -20,6 +20,7 @@ bot.general_channel = None
 bot.intro_channel = None
 bot.operations_channel = None
 bot.narc_channel = None
+bot.save_channel = None
 
 bot.command_channel_name = "bot-commands"
 bot.debug_output_channel_name = "bot-debug-output"
@@ -28,6 +29,7 @@ bot.general_channel_name = "general"
 bot.intro_channel_name = "intro"
 bot.operations_channel_name = "operations"
 bot.narc_channel_name = "narc"
+bot.save_channel_name = "bot-save-current-status"
 
 # Set up our movie list (which is actually a Dictionary, not a List!)
 bot.proposed_movies = {}
@@ -87,31 +89,36 @@ async def checkReactions(m, user):
 async def init_channels(message):
     bot.debug_output_channel = discord.utils.get(bot.server.text_channels, name=bot.debug_output_channel_name)
     if bot.debug_output_channel == None:
-        await message.channel.send("could not find {0}! make sure such a channel exists! i was told this server was ready for me :(".format(bot.debug_output_channel_name))
+        await message.channel.send("🚨 could not find {0}! make sure such a channel exists! i was told this server was ready for me :(".format(bot.debug_output_channel_name))
 
     bot.loudspeaker_channel = discord.utils.get(bot.server.text_channels, name=bot.loudspeaker_channel_name)
     if bot.loudspeaker_channel == None:
-        await bot.debug_output_channel.send("could not find {0}!".format(bot.loudspeaker_channel_name))
+        await bot.debug_output_channel.send("🚨 could not find {0}!".format(bot.loudspeaker_channel_name))
 
     bot.command_channel = discord.utils.get(bot.server.text_channels, name=bot.command_channel_name)
     if bot.command_channel == None:
-        await bot.debug_output_channel.send("could not find {0}!".format(bot.command_channel_name))
+        await bot.debug_output_channel.send("🚨 could not find {0}!".format(bot.command_channel_name))
 
     bot.general_channel = discord.utils.get(bot.server.text_channels, name=bot.general_channel_name)
     if bot.command_channel == None:
-        await bot.debug_output_channel.send("could not find {0}!".format(bot.general_channel_name))
+        await bot.debug_output_channel.send("🚨 could not find {0}!".format(bot.general_channel_name))
 
     bot.intro_channel = discord.utils.get(bot.server.text_channels, name=bot.intro_channel_name)
     if bot.command_channel == None:
-        await bot.debug_output_channel.send("could not find {0}!".format(bot.intro_channel_name))
+        await bot.debug_output_channel.send("🚨 could not find {0}!".format(bot.intro_channel_name))
 
     bot.operations_channel = discord.utils.get(bot.server.text_channels, name=bot.operations_channel_name)
     if bot.command_channel == None:
-        await bot.debug_output_channel.send("could not find {0}!".format(bot.operations_channel_name))
+        await bot.debug_output_channel.send("🚨 could not find {0}!".format(bot.operations_channel_name))
 
     bot.narc_channel = discord.utils.get(bot.server.text_channels, name=bot.narc_channel_name)
     if bot.command_channel == None:
-        await bot.debug_output_channel.send("could not find {0}!".format(bot.narc_channel_name))
+        await bot.debug_output_channel.send("🚨 could not find {0}!".format(bot.narc_channel_name))
+
+    bot.save_channel = discord.utils.get(bot.server.text_channels, name=bot.save_channel_name)
+    if bot.save_channel == None:
+        await bot.debug_output_channel.send("🚨 could not find {0}!".format(bot.save_channel_name))
+
 
 async def bot_say(content, channel):
     bot_blorps = [
@@ -195,7 +202,7 @@ async def preview_command(message):
             random_key = random.choice(list(bot.proposed_movies))
             movie_request = bot.proposed_movies[random_key]
             movie_name = movie_request.movie_name
-            gif = await bot_gif(movie_name)
+            gif = await bot_gif("{0} movie".format(movie_name))
 
             preview_phrases = [
             'a vote for **{0}** is a vote for:'.format(movie_name),
@@ -346,7 +353,7 @@ async def censor(message):
         output.append(r"           //`:::`\\         ")
         output.append(r"          //   '   \\        ")
         output.append(r"         |/         \\       ")
-        output.append("\n \n \n \n \n \n \n \nFREEDOM OF EXPRESSION HASN'T BEEN SUPPORTED SINCE v2019\n \nWE APOLOGISE FOR ANY INCONVENIENCE\n \n \n```")
+        output.append("\n \n \n \n \n \n \n \n \n ```")
 
         separator = '\n'
         await message.channel.send(separator.join(output))
