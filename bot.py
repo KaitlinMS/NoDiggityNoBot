@@ -251,7 +251,7 @@ async def status_report_command(message):
                 vetoed_movies[key] = bot.proposed_movies[key]
 
         if len(vetoed_movies) > 0:
-            output.append('>>--- honourable mentions ---<<')
+            output.append('>>-- honourable pooptions --<<')
             
             sorted_vetoed_proposals = {}
             for key in vetoed_movies:
@@ -485,7 +485,7 @@ async def bot_directed_messages(message):
                 response = kind_phrases[random_index]
                 await bot_say(response, bot.general_channel)
         else:
-            await bot_say("are you talking to me?", bot.general_channel)
+            await message.add_reaction('🤖')
 
 async def movie_channel_creation_and_assignment(message):
     if message.channel != bot.command_channel:
