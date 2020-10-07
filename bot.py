@@ -594,7 +594,7 @@ async def populate_short_list():
         third_top_vote = 0
         for key in bot.proposed_movies:
             if bot.proposed_movies[key].votes > third_top_vote and bot.proposed_movies[key].votes < second_top_vote and bot.proposed_movies[key].vetoed == False:
-                second_top_vote = bot.proposed_movies[key].votes
+                third_top_vote = bot.proposed_movies[key].votes
 
         for key in bot.proposed_movies:
             if bot.proposed_movies[key].votes == third_top_vote and bot.proposed_movies[key].vetoed == False:
