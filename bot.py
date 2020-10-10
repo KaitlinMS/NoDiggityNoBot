@@ -55,6 +55,8 @@ class Proposal(object):
 # Update the vote/veto counts in the proposal for the corresponding message
 async def checkReactions(m, user):
     if m.channel == bot.movie_channel:
+        await populate_proposed_movie_list()
+
         number_of_poops = 0
         number_of_votes = 0
         
@@ -63,24 +65,24 @@ async def checkReactions(m, user):
         for r in m.reactions:
             if r.emoji == '💩':
                 number_of_poops = r.count
-            else:
-                if r.count > highest_emoji_count:
-                    highest_emoji_count = r.count
+            elif r.count > highest_emoji_count:
+                highest_emoji_count = r.count
 
         number_of_votes = highest_emoji_count
                 
-        if m.content in bot.proposed_movies:
-            if number_of_poops > 0 and bot.proposed_movies[m.content].vetoed == False:
-                bot.proposed_movies[m.content].vetoed = True
-                await bot.general_channel.send('{0} has been 💩\'d by ||{1}||!'.format(m.content, user.display_name))
-            elif number_of_poops <= 0 and bot.proposed_movies[m.content].vetoed == True:
-                bot.proposed_movies[m.content].vetoed = False
-                await bot.general_channel.send('{0} is no longer 💩\'d! The plot thickens!'.format(m.content))
+        if number_of_poops > 0 and bot.proposed_movies[m.content].vetoed == False:
+            bot.proposed_movies[m.content].vetoed = True
+            await bot.general_channel.send('{0} has been 💩\'d by ||{1}||!'.format(m.content, user.display_name))
+        elif number_of_poops <= 0 and bot.proposed_movies[m.content].vetoed == True:
+            bot.proposed_movies[m.content].vetoed = False
+            await bot.general_channel.send('{0} is no longer 💩\'d! The plot thickens!'.format(m.content))
+
     elif m.channel == bot.operations_channel:
         for key in bot.short_list:
             if m.content == key:
                 for r in m.reactions:
                     bot.short_list[key].emoji_icon = r.emoji
+
     elif m.channel == bot.general_channel:
         if bot.final_vote_message != None:
             if m.content == bot.final_vote_message.content:
@@ -118,7 +120,6 @@ async def init_channels(message):
     bot.save_channel = discord.utils.get(bot.server.text_channels, name=bot.save_channel_name)
     if bot.save_channel == None:
         await bot.debug_output_channel.send("🚨 could not find {0}!".format(bot.save_channel_name))
-
 
 async def bot_say(content, channel):
     bot_blorps = [
@@ -161,7 +162,7 @@ async def debug_commands(message):
         output.append("\n **Summon +'Cool  Movie Channel---Name!! 🤖'** \n- Creates a new movie channel for the night; name will be formatted to Discord channel rules (ex:cool-movie-channel-name-🤖)")
         output.append("\n **Set Movie Channel +'existing-channel-name'** \n- Sets an existing channel to be the movie channel. Please note that the name has to match perfectly")
         output.append("\n **Clear Movie Channel** \n- Sets the movie channel variable to None; mostly used for debug purposes")
-        output.append("\n **Status Report** OR **Movie Status** \n- Sends a message to #general with the current movie standings")
+        output.append("\n **Status Report** OR **Movie Status** OR **Status** \n- Sends a message to #general with the current movie standings")
         output.append("\n **Short List** \n- Collects all the non-vetoed movies and chooses all with the top 3 vote counts. Sends a message to #Operations with the content for human emojification")
         output.append("\n **Final Vote** \n- Creates a final vote in #general using the short list and supplied emojis")
         output.append("\n **Decide** \n- Calls the winner and asks Kat for the time")
@@ -223,7 +224,7 @@ async def status_report_command(message):
         return
 
     lower_message = message.content.lower()
-    if lower_message == 'movie status' or lower_message == 'status report':
+    if lower_message == 'movie status' or lower_message == 'status report' or lower_message == 'status':
         await populate_proposed_movie_list()
         await populate_short_list()
         vetoed_movies = {}
@@ -263,6 +264,7 @@ async def status_report_command(message):
                 key = obj[0]
                 movie_name = bot.proposed_movies[key].movie_name
                 vote_count = bot.proposed_movies[key].votes
+                emoji_icon = bot.proposed_movies[key].emoji_icon
                 if vote_count == 1:
                     output.append('💩{0}x1 - {1}'.format(emoji_icon, movie_name))
                 elif vote_count > 1:
@@ -358,6 +360,34 @@ async def censor(message):
         separator = '\n'
         await message.channel.send(separator.join(output))
 
+async def alert_commands(message):
+    if message.channel != bot.command_channel and message.channel != bot.general_channel:
+        return
+
+    alertStatus = ''
+
+    lower_message = message.content.lower()
+    if lower_message.find('alert') >= 0:
+        if lower_message.find('blue') >= 0:
+            alertStatus = 'blue'
+        if lower_message.find('yellow') >= 0:
+            alertStatus = 'yellow'
+        if lower_message.find('red') >= 0:
+            alertStatus = 'red'
+        if lower_message.find('boner') >= 0:
+            alertStatus = 'boner'
+
+        if alertStatus == 'blue':
+            await bot.general_channel.send('https://media2.giphy.com/media/zGmilchBguJeU/giphy.gif')
+        elif alertStatus == 'yellow':
+            await bot.general_channel.send('https://media4.giphy.com/media/L8yQ0RQBItqso/giphy.gif')
+        elif alertStatus == 'red':
+            await bot.general_channel.send('https://media4.giphy.com/media/Jpp7TR2Rv4vTizHj5g/giphy.gif')
+        elif alertStatus == 'boner':
+            await bot.general_channel.send('https://media3.giphy.com/media/nm53RKtqcczp6/giphy.gif')
+        else:
+            await bot.general_channel.send(await bot_gif(message.content))
+
 # Will try to react to messages that are aimed at bot
 async def bot_directed_messages(message):
     if message.channel != bot.general_channel:
@@ -436,8 +466,6 @@ async def bot_directed_messages(message):
             certainty += len(word) / len(message.content)
 
     # TODO: Check to see if this is an immediate response to a bot message for +certainty
-
-    print(certainty)
 
     if certainty > 0.09:
         cursed = False
@@ -705,6 +733,9 @@ async def on_message(message):
     if message != None:
         await preview_command(message)
 
+    if message != None:
+        await alert_commands(message)
+
 @bot.event
 async def on_message_delete(message):
     if message.channel == bot.movie_channel:
@@ -718,6 +749,5 @@ async def on_reaction_add(reaction, user):
 async def on_reaction_remove(reaction, user):
     await checkReactions(reaction.message, user)
 
-    
 # Run the bot and init channels
 bot.run(TOKEN)
