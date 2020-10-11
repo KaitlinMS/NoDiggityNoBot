@@ -10,4 +10,7 @@ install discord.py
 install giphy client
 - windows: pip install giphy_client
 
+install requests
+- windows: pip install requests
+
 run bot.py
