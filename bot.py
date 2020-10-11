@@ -53,23 +53,33 @@ class Proposal(object):
         self.emoji_icon = emoji_icon
 
 # Update the vote/veto counts in the proposal for the corresponding message
-async def checkReactions(m, user):
-    if m.channel == bot.movie_channel:
-        await populate_proposed_movie_list()
+async def check_reactions(m, user):
+    await check_reactions_movie_channel(m, user)
+    await check_reactions_operations_channel(m, user)
+    await check_reactions_general_channel(m, user)
 
-        number_of_poops = 0
-        number_of_votes = 0
-        
-        highest_emoji_count = 0
+async def check_reactions_movie_channel(m, user):
+    print('test')
+    if m.channel != bot.movie_channel:
+        return
 
-        for r in m.reactions:
-            if r.emoji == '💩':
-                number_of_poops = r.count
-            elif r.count > highest_emoji_count:
-                highest_emoji_count = r.count
+    number_of_poops = 0
+    number_of_votes = 0
+    
+    highest_emoji_count = 0
 
-        number_of_votes = highest_emoji_count
-                
+    for r in m.reactions:
+        if r.emoji == '💩':
+            number_of_poops = r.count
+        elif r.count > highest_emoji_count:
+            highest_emoji_count = r.count
+
+    number_of_votes = highest_emoji_count
+
+    print('In reactions I see {0} movies'.format(len(bot.proposed_movies)))
+    print('Got here with: {0}'.format(m.content))
+    if m.content in bot.proposed_movies:
+        print("here") 
         if number_of_poops > 0 and bot.proposed_movies[m.content].vetoed == False:
             bot.proposed_movies[m.content].vetoed = True
             await bot.general_channel.send('{0} has been 💩\'d by ||{1}||!'.format(m.content, user.display_name))
@@ -77,16 +87,22 @@ async def checkReactions(m, user):
             bot.proposed_movies[m.content].vetoed = False
             await bot.general_channel.send('{0} is no longer 💩\'d! The plot thickens!'.format(m.content))
 
-    elif m.channel == bot.operations_channel:
-        for key in bot.short_list:
-            if m.content == key:
-                for r in m.reactions:
-                    bot.short_list[key].emoji_icon = r.emoji
+async def check_reactions_operations_channel(m, user):
+    if m.channel != bot.operations_channel:
+        return
 
-    elif m.channel == bot.general_channel:
-        if bot.final_vote_message != None:
-            if m.content == bot.final_vote_message.content:
-                bot.final_message_reactions = m.reactions
+    for key in bot.short_list:
+        if m.content == key:
+            for r in m.reactions:
+                bot.short_list[key].emoji_icon = r.emoji
+
+async def check_reactions_general_channel(m, user):
+    if m.channel != bot.general_channel:
+        return
+
+    if bot.final_vote_message != None:
+        if m.content == bot.final_vote_message.content:
+            bot.final_message_reactions = m.reactions
 
 async def init_channels(message):
     bot.debug_output_channel = discord.utils.get(bot.server.text_channels, name=bot.debug_output_channel_name)
@@ -435,7 +451,8 @@ async def bot_directed_messages(message):
     'jerk',
     'screw',
     'eat my',
-    'stupid']
+    'stupid',
+    'hate']
 
     kind_words = [
     'love',
@@ -655,6 +672,10 @@ async def populate_proposed_movie_list():
 
         bot.proposed_movies[m.content] = Proposal(m.content, number_of_votes, vetoed, m.author, emoji_icon)
 
+    print('Updated proposed movies; new count: {0}'.format(len(bot.proposed_movies)))
+    for key in bot.proposed_movies:
+        print(bot.proposed_movies[key].movie_name)
+
     #await bot.debug_output_channel.send(len(bot.proposed_movies))
 
 async def bot_gif(query):
@@ -684,7 +705,6 @@ async def on_message(message):
 
     bot.server = message.guild;
 
-    #if message.channel == bot.general_channel:
     # Hack o'clock mother fuckers. Fuck you ASYNC
     final_vote_message = 'final vote'
     final_vote_message_1 = '>>'
@@ -742,12 +762,18 @@ async def on_message_delete(message):
         bot.proposed_movies.pop(message.content, None)
 
 @bot.event
-async def on_reaction_add(reaction, user):
-    await checkReactions(reaction.message, user)
+async def on_raw_reaction_add(payload):
+    channel = bot.get_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
+    user = bot.get_user(payload.user_id)
+    await check_reactions(message, user)
     
 @bot.event
-async def on_reaction_remove(reaction, user):
-    await checkReactions(reaction.message, user)
+async def on_raw_reaction_remove(payload):
+    channel = bot.get_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
+    user = bot.get_user(payload.user_id)
+    await check_reactions(message, user)
 
 # Run the bot and init channels
 bot.run(TOKEN)
