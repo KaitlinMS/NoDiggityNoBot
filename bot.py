@@ -59,6 +59,7 @@ async def check_reactions(m, user):
     await check_reactions_movie_channel(m, user)
     await check_reactions_operations_channel(m, user)
     await check_reactions_general_channel(m, user)
+    await check_reactions_all_channels(m, user)
 
 async def check_reactions_movie_channel(m, user):
     print('test')
@@ -104,6 +105,13 @@ async def check_reactions_general_channel(m, user):
         if m.content == bot.final_vote_message.content:
             bot.final_message_reactions = m.reactions
 
+async def check_reactions_all_channels(m, user):
+    for r in m.reactions:
+        if r.emoji == '🎴':
+            await m.clear_reaction('🎴')
+            await m.add_reaction('🤖')
+
+
 async def init_channels(message):
     bot.debug_output_channel = discord.utils.get(bot.server.text_channels, name=bot.debug_output_channel_name)
     if bot.debug_output_channel == None:
@@ -132,6 +140,16 @@ async def init_channels(message):
     bot.narc_channel = discord.utils.get(bot.server.text_channels, name=bot.narc_channel_name)
     if bot.command_channel == None:
         await bot.debug_output_channel.send("🚨 could not find {0}!".format(bot.narc_channel_name))
+
+    submissions_category = discord.utils.get(bot.server.categories, name='submissions')
+    channels = submissions_category.channels
+    if len(channels) > 1:
+        await bot.debug_output_channel.send("🚨 found more than one movie channel in the 'submissions' category! make sure there is only one")
+    elif len(channels) == 0:
+        await bot.debug_output_channel.send("🚨 found no channel(s) in the 'submissions' category! make sure there is one and only one")
+    else:    
+        bot.movie_channel = channels[0]
+        await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
 
     bot.save_channel = discord.utils.get(bot.server.text_channels, name=bot.save_channel_name)
     if bot.save_channel == None:
@@ -248,7 +266,6 @@ async def upload_preview_command(message):
         embed = discord.Embed()
         embed.set_image(url="attachment://preview.gif")
         await bot.general_channel.send(file=file)
-
 
 async def status_report_command(message):
     if message.channel != bot.command_channel and message.channel != bot.general_channel:
@@ -551,6 +568,8 @@ async def movie_channel_creation_and_assignment(message):
     if message.channel != bot.command_channel:
         return
 
+    submissions_category = discord.utils.get(bot.server.categories, name='submissions')
+
     summon_movie_night_message = 'Summon'
     if message.content.find(summon_movie_night_message) >= 0:
         if bot.movie_channel == None:
@@ -558,6 +577,8 @@ async def movie_channel_creation_and_assignment(message):
             new_channel_name = new_channel_name.strip()
 
             bot.movie_channel = await bot.server.create_text_channel(new_channel_name)
+            await bot.movie_channel.edit(category=submissions_category)
+
             await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
             output = [">>----- 🦂 it's movie night!! 🦂 -----<<"]
             output.append("submit movies in {0.mention}!".format(bot.movie_channel))
@@ -568,23 +589,6 @@ async def movie_channel_creation_and_assignment(message):
             await bot.general_channel.send(separator.join(output))
         else:
             await bot_say("someone tried to create a movie channel, but one already exists! consider using the 'Set Movie Channel' command or use 'Help' for more tips!", bot.debug_output_channel)
-
-    set_movie_channel_message = 'Set Movie Channel'
-    if message.content.find(set_movie_channel_message) >= 0:
-        existing_channel_name = message.content.replace(set_movie_channel_message, '')
-        existing_channel_name = existing_channel_name.strip()
-
-        existing_movie_channel = discord.utils.get(bot.server.text_channels, name=existing_channel_name)
-        if existing_movie_channel != None:
-            bot.movie_channel = existing_movie_channel
-            await populate_proposed_movie_list()
-            await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
-        else:
-           await bot_send("someone tried to set the movie channel to a channel named *{0}*, but no channel with that name exists! check your spelling or use 'Help' for more tips!".format(existing_channel_name), bot.debug_output_channel) 
-
-    clear_movie_channel_message = 'Clear Movie Channel'
-    if message.content.find(clear_movie_channel_message) >= 0:
-        bot.movie_channel = None
 
 async def movie_channel_management(message):
     if message.channel != bot.movie_channel:
