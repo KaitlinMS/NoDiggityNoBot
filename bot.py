@@ -1,3 +1,5 @@
+import os
+import requests
 import discord
 import random
 import giphy_client
@@ -76,8 +78,6 @@ async def check_reactions_movie_channel(m, user):
 
     number_of_votes = highest_emoji_count
 
-    print('In reactions I see {0} movies'.format(len(bot.proposed_movies)))
-    print('Got here with: {0}'.format(m.content))
     if m.content in bot.proposed_movies:
         print("here") 
         if number_of_poops > 0 and bot.proposed_movies[m.content].vetoed == False:
@@ -206,7 +206,7 @@ async def loud_speaker(message):
     if message.channel == bot.loudspeaker_channel:
         await bot_say(message.content, bot.general_channel)
 
-async def preview_command(message):
+async def make_preview_command(message):
     if message.channel != bot.command_channel and message.channel != bot.general_channel:
         return
 
@@ -219,7 +219,9 @@ async def preview_command(message):
             random_key = random.choice(list(bot.proposed_movies))
             movie_request = bot.proposed_movies[random_key]
             movie_name = movie_request.movie_name
-            gif = await bot_gif("{0} movie".format(movie_name))
+            gif_url = await bot_gif("{0} movie".format(movie_name))
+
+            download(gif_url, dest_folder="PreviewGifs", filename='preview.gif')
 
             preview_phrases = [
             'a vote for **{0}** is a vote for:'.format(movie_name),
@@ -231,9 +233,22 @@ async def preview_command(message):
             phrase = preview_phrases[random_index]
 
             #await bot_say(bot_gif(movie_request), message.channel)
-            await bot_say("{0} {1}".format(phrase, gif), bot.general_channel)
-            if movie_request.vetoed == True:
-                await bot_say("too bad it got 💩'd...", bot.general_channel)
+            #await bot_say("{0} {1}".format(phrase, gif_url), bot.general_channel)
+            #if movie_request.vetoed == True:
+            #    await bot_say("too bad it got 💩'd...", bot.general_channel)
+
+async def upload_preview_command(message):
+    if message.channel != bot.command_channel and message.channel != bot.general_channel:
+        return
+
+    lower_message = message.content.lower()
+    if lower_message == 'upload':
+        file_path = os.path.join('PreviewGifs', 'preview.gif')
+        file = discord.File(file_path, filename="preview.gif")
+        embed = discord.Embed()
+        embed.set_image(url="attachment://preview.gif")
+        await bot.general_channel.send(file=file)
+
 
 async def status_report_command(message):
     if message.channel != bot.command_channel and message.channel != bot.general_channel:
@@ -672,9 +687,9 @@ async def populate_proposed_movie_list():
 
         bot.proposed_movies[m.content] = Proposal(m.content, number_of_votes, vetoed, m.author, emoji_icon)
 
-    print('Updated proposed movies; new count: {0}'.format(len(bot.proposed_movies)))
-    for key in bot.proposed_movies:
-        print(bot.proposed_movies[key].movie_name)
+    #print('Updated proposed movies; new count: {0}'.format(len(bot.proposed_movies)))
+    #for key in bot.proposed_movies:
+    #    print(bot.proposed_movies[key].movie_name)
 
     #await bot.debug_output_channel.send(len(bot.proposed_movies))
 
@@ -683,7 +698,7 @@ async def bot_gif(query):
 
 async def search_gifs(query):
     try:
-        response = bot.giphy_api_instance.gifs_search_get('T4CvdfWLKISr2UdxxoTExXqoGaQh9e8v', query, limit=3, rating='r')
+        response = bot.giphy_api_instance.gifs_search_get('T4CvdfWLKISr2UdxxoTExXqoGaQh9e8v', query, rating = 'g')
         lst = list(response.data)
         gif = random.choices(lst)
 
@@ -692,6 +707,24 @@ async def search_gifs(query):
     except ApiException as e:
         print("Exception when calling DefaultApi->gifs_search_get: %s\n" % e)
         return ""
+
+def download(url: str, dest_folder: str, filename: str):
+    if not os.path.exists(dest_folder):
+        os.makedirs(dest_folder)  # create folder if it does not exist
+
+    print(url)
+
+    file_path = os.path.join(dest_folder, filename)
+    split_url = url.split("-")
+    mod_url = 'https://media4.giphy.com/media/{}/giphy.gif'.format(split_url[len(split_url) - 1])
+
+    print(split_url)
+    r = requests.get(mod_url, stream=True)
+    if r.ok:
+        print("saving to", os.path.abspath(file_path))
+        open(file_path, 'wb').write(r.content)
+    else:  # HTTP status code 4XX/5XX
+        print("Download failed: status code {0}\n{1}".format(r.status_code, r.text))
 
 # Now we start listening to all the different Discord events!
 @bot.event
@@ -751,7 +784,10 @@ async def on_message(message):
         await censor(message)
 
     if message != None:
-        await preview_command(message)
+        await make_preview_command(message)
+
+    if message != None:
+        await upload_preview_command(message)
 
     if message != None:
         await alert_commands(message)
