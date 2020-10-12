@@ -267,6 +267,9 @@ async def download_preview_command(message):
             print("exitted download function after {0} attempts".format(current_attempt))
             if current_attempt < max_attempts:
                 await stitch_preview(movie_name)
+            else:
+                await bot_say("failed to download the required gifs for preview!")
+
 
             #preview_phrases = [
             #'a vote for **{0}** is a vote for:'.format(movie_name),
