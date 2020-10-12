@@ -42,6 +42,8 @@ bot.final_message_reactions = None
 
 bot.times_cursed_at = 0
 
+bot.preview_count = 5
+
 # Create an instance of the giphy API class
 bot.giphy_api_instance = giphy_client.DefaultApi()
 
@@ -145,11 +147,11 @@ async def init_channels(message):
     channels = submissions_category.channels
     if len(channels) > 1:
         await bot.debug_output_channel.send("🚨 found more than one movie channel in the 'submissions' category! make sure there is only one")
-    elif len(channels) == 0:
-        await bot.debug_output_channel.send("🚨 found no channel(s) in the 'submissions' category! make sure there is one and only one")
+    #elif len(channels) == 0:
+    #    await bot.debug_output_channel.send("🚨 found no channel(s) in the 'submissions' category! make sure there is one and only one")
     else:    
         bot.movie_channel = channels[0]
-        await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
+        #await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
 
     bot.save_channel = discord.utils.get(bot.server.text_channels, name=bot.save_channel_name)
     if bot.save_channel == None:
@@ -194,8 +196,6 @@ async def debug_commands(message):
         output.append("\n **Help** \n- See this text.")
         output.append("\n **Test** \n- Check if I'm alive")
         output.append("\n **Summon +'Cool  Movie Channel---Name!! 🤖'** \n- Creates a new movie channel for the night; name will be formatted to Discord channel rules (ex:cool-movie-channel-name-🤖)")
-        output.append("\n **Set Movie Channel +'existing-channel-name'** \n- Sets an existing channel to be the movie channel. Please note that the name has to match perfectly")
-        output.append("\n **Clear Movie Channel** \n- Sets the movie channel variable to None; mostly used for debug purposes")
         output.append("\n **Status Report** OR **Movie Status** OR **Status** \n- Sends a message to #general with the current movie standings")
         output.append("\n **Short List** \n- Collects all the non-vetoed movies and chooses all with the top 3 vote counts. Sends a message to #Operations with the content for human emojification")
         output.append("\n **Final Vote** \n- Creates a final vote in #general using the short list and supplied emojis")
@@ -234,21 +234,41 @@ async def make_preview_command(message):
         if len(bot.proposed_movies) == 0:
             await bot_say("nothing to preview!", bot.debug_output_channel)
         else:
+            max_attempts = 100
+            current_attempt = 1
+            downloaded_count = 0
             random_key = random.choice(list(bot.proposed_movies))
             movie_request = bot.proposed_movies[random_key]
             movie_name = movie_request.movie_name
-            gif_url = await bot_gif("{0} movie".format(movie_name))
+            urls_attempted = []
 
-            download(gif_url, dest_folder="PreviewGifs", filename='preview.gif')
+            await bot_say("attempting to generate preview for {}".format(movie_name), bot.debug_output_channel)
 
-            preview_phrases = [
-            'a vote for **{0}** is a vote for:'.format(movie_name),
-            'vote for **{0}** to enjoy sweet memes like:'.format(movie_name),
-            "hey, doesn't **{0}** look like an interesting film:".format(movie_name),
-            'vote for **{0}** for scenes like:'.format(movie_name)]
+            while current_attempt < max_attempts:
+                gif_url = await bot_gif("{0} movie".format(movie_name))
+                split_url = gif_url.split("-")
+                mod_url = 'https://media4.giphy.com/media/{}/giphy.gif'.format(split_url[len(split_url) - 1])
 
-            random_index = random.randrange(len(preview_phrases))
-            phrase = preview_phrases[random_index]
+                if mod_url not in urls_attempted:
+                    urls_attempted.append(mod_url)
+
+                    if download(mod_url, dest_folder="PreviewGifs", filename='preview_{}.gif'.format(downloaded_count)):
+                        downloaded_count += 1
+
+                if downloaded_count >= bot.preview_count:
+                    break
+                current_attempt += 1
+
+            print("exited download function after {0} attempts".format(current_attempt))
+
+            #preview_phrases = [
+            #'a vote for **{0}** is a vote for:'.format(movie_name),
+            #'vote for **{0}** to enjoy sweet memes like:'.format(movie_name),
+            #"hey, doesn't **{0}** look like an interesting film:".format(movie_name),
+            #'vote for **{0}** for scenes like:'.format(movie_name)]
+
+            #random_index = random.randrange(len(preview_phrases))
+            #phrase = preview_phrases[random_index]
 
             #await bot_say(bot_gif(movie_request), message.channel)
             #await bot_say("{0} {1}".format(phrase, gif_url), bot.general_channel)
@@ -716,19 +736,21 @@ def download(url: str, dest_folder: str, filename: str):
     if not os.path.exists(dest_folder):
         os.makedirs(dest_folder)  # create folder if it does not exist
 
-    print(url)
-
     file_path = os.path.join(dest_folder, filename)
-    split_url = url.split("-")
-    mod_url = 'https://media4.giphy.com/media/{}/giphy.gif'.format(split_url[len(split_url) - 1])
 
-    print(split_url)
-    r = requests.get(mod_url, stream=True)
+    r = requests.get(url, stream=True)
     if r.ok:
-        print("saving to", os.path.abspath(file_path))
-        open(file_path, 'wb').write(r.content)
+        size  = r.headers.get("Content-Length")
+        if(int(size) < 8000000 / bot.preview_count):
+            print("attempting download of: {}".format(url))
+            print("saving to", os.path.abspath(file_path))
+            file  = open(file_path, 'wb')
+            file.write(r.content)
+            return True
     else:  # HTTP status code 4XX/5XX
         print("Download failed: status code {0}\n{1}".format(r.status_code, r.text))
+
+    return False
 
 # Now we start listening to all the different Discord events!
 @bot.event
