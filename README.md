@@ -12,4 +12,6 @@ install requests
 
 install moviepy
 
+install Pillow
+
 run bot.py
