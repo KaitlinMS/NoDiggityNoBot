@@ -13,4 +13,7 @@ install giphy client
 install requests
 - windows: pip install requests
 
+install Pillow
+- windows: pip install Pillow
+
 run bot.py
