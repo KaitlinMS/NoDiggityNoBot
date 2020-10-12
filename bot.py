@@ -3,6 +3,9 @@ import requests
 import discord
 import random
 import giphy_client
+from moviepy.editor import *
+from moviepy.video.fx.all import *
+from PIL import Image, ImageDraw
 from giphy_client.rest import ApiException
 from pprint import pprint
 
@@ -42,7 +45,8 @@ bot.final_message_reactions = None
 
 bot.times_cursed_at = 0
 
-bot.preview_count = 5
+bot.preview_count = 8
+bot.preview_size = 800, 340
 
 # Create an instance of the giphy API class
 bot.giphy_api_instance = giphy_client.DefaultApi()
@@ -224,7 +228,7 @@ async def loud_speaker(message):
     if message.channel == bot.loudspeaker_channel:
         await bot_say(message.content, bot.general_channel)
 
-async def make_preview_command(message):
+async def download_preview_command(message):
     if message.channel != bot.command_channel and message.channel != bot.general_channel:
         return
 
@@ -237,6 +241,7 @@ async def make_preview_command(message):
             max_attempts = 100
             current_attempt = 1
             downloaded_count = 0
+            not_yet_previewed_movies = {}
             random_key = random.choice(list(bot.proposed_movies))
             movie_request = bot.proposed_movies[random_key]
             movie_name = movie_request.movie_name
@@ -259,7 +264,9 @@ async def make_preview_command(message):
                     break
                 current_attempt += 1
 
-            print("exited download function after {0} attempts".format(current_attempt))
+            print("exitted download function after {0} attempts".format(current_attempt))
+            if current_attempt < max_attempts:
+                await stitch_preview(movie_name)
 
             #preview_phrases = [
             #'a vote for **{0}** is a vote for:'.format(movie_name),
@@ -275,17 +282,77 @@ async def make_preview_command(message):
             #if movie_request.vetoed == True:
             #    await bot_say("too bad it got 💩'd...", bot.general_channel)
 
-async def upload_preview_command(message):
-    if message.channel != bot.command_channel and message.channel != bot.general_channel:
-        return
+async def stitch_preview(movie_name):
+    clips = []
 
-    lower_message = message.content.lower()
-    if lower_message == 'upload':
-        file_path = os.path.join('PreviewGifs', 'preview.gif')
-        file = discord.File(file_path, filename="preview.gif")
-        embed = discord.Embed()
-        embed.set_image(url="attachment://preview.gif")
-        await bot.general_channel.send(file=file)
+    def append_clip(clip):
+        aspect_ratio = clip.w / clip.h
+        dimensions = 1, 1
+        if aspect_ratio > 2.35:
+            dimensions = clip.h*2.35, clip.h
+        else:
+            dimensions = clip.w, clip.w/2.35
+
+        clip = crop(clip, width=dimensions[0], height=dimensions[1], x_center=clip.w/2, y_center=clip.h/2)
+        clip = clip.resize(bot.preview_size)
+        clips.append(clip)
+
+    clip_file_path = os.path.join('PreviewGifs', 'trailer_card.gif')
+    clip = VideoFileClip(clip_file_path)
+    append_clip(clip)
+
+    for x in range(0, bot.preview_count):
+        clip_file_path = os.path.join('PreviewGifs', 'preview_{0}.gif'.format(x))
+        clip = VideoFileClip(clip_file_path)
+        append_clip(clip)
+
+    text_card_size = int(bot.preview_size[0]/4), int(bot.preview_size[1]/4) # this is a hack to make text bigger without dealing with font size
+    img = Image.new('RGB', (text_card_size[0], text_card_size[1]), color=0)
+    text = movie_name.upper()
+    draw = ImageDraw.Draw(img)
+    w, h = draw.textsize(text)
+    draw.text(((text_card_size[0]-w)/2,(text_card_size[1]-h)/2), text, fill="white")
+
+    dest_file_path = os.path.join('PreviewGifs', 'movie_name.png')
+    img.save(dest_file_path)
+
+    clip = ImageClip(dest_file_path).set_duration(4)
+    append_clip(clip)
+
+    if not os.path.exists('StitchedPreview'):
+        os.makedirs('StitchedPreview') 
+
+    dest_file_path = os.path.join('StitchedPreview', 'preview.gif')
+
+    max_attempts = 15
+    attempt = 0
+    size_ratio = 1
+    stitched_clip = concatenate_videoclips(clips)
+
+    while attempt < max_attempts:
+        attempt += 1
+        stitched_clip = stitched_clip.resize((bot.preview_size[0] / size_ratio, bot.preview_size[1] / size_ratio))
+        stitched_clip.write_gif(dest_file_path, program='ffmpeg', fps=15)
+        file_size = os.stat(dest_file_path).st_size
+        if file_size < 8300000:
+            print("stiched preview generated after {0} attempts".format(attempt))
+            await bot_say("generated stitched preview under 8mb after {0} attempts!".format(attempt), bot.debug_output_channel)
+            break
+        else:
+            size_ratio = 1 + (0.15 * attempt)
+
+    if attempt > max_attempts:
+        print("failed to create a gif under 8mb")
+        await bot_say("failed to generate a gif preview under 8mb after {0} attempts".format(attempt), bot.debug_output_channel)
+    else:
+        await upload_preview()            
+
+async def upload_preview():
+    file_path = os.path.join('StitchedPreview', 'preview.gif')
+    file = discord.File(file_path, filename="preview.gif")
+    embed = discord.Embed()
+    embed.set_image(url="attachment://preview.gif")
+    await bot.general_channel.send(file=file)
 
 async def status_report_command(message):
     if message.channel != bot.command_channel and message.channel != bot.general_channel:
@@ -722,7 +789,7 @@ async def bot_gif(query):
 
 async def search_gifs(query):
     try:
-        response = bot.giphy_api_instance.gifs_search_get('T4CvdfWLKISr2UdxxoTExXqoGaQh9e8v', query, rating = 'g')
+        response = bot.giphy_api_instance.gifs_search_get('T4CvdfWLKISr2UdxxoTExXqoGaQh9e8v', query)
         lst = list(response.data)
         gif = random.choices(lst)
 
@@ -741,7 +808,7 @@ def download(url: str, dest_folder: str, filename: str):
     r = requests.get(url, stream=True)
     if r.ok:
         size  = r.headers.get("Content-Length")
-        if(int(size) < 8000000 / bot.preview_count):
+        if(int(size) < 8000000 / bot.preview_count and int(size) > 500000):
             print("attempting download of: {}".format(url))
             print("saving to", os.path.abspath(file_path))
             file  = open(file_path, 'wb')
@@ -752,6 +819,9 @@ def download(url: str, dest_folder: str, filename: str):
 
     return False
 
+#----------------------------------------------------------------------------------------
+#-------------------------- D I S C O R D --- E V E N T S -------------------------------
+#----------------------------------------------------------------------------------------
 # Now we start listening to all the different Discord events!
 @bot.event
 async def on_ready():
@@ -810,10 +880,7 @@ async def on_message(message):
         await censor(message)
 
     if message != None:
-        await make_preview_command(message)
-
-    if message != None:
-        await upload_preview_command(message)
+        await download_preview_command(message)
 
     if message != None:
         await alert_commands(message)
