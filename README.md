@@ -1,17 +1,17 @@
 # NoDiggityNoBot
 
-In order to test:
+Tested using Python 3.7/3.8
 
-install Python (tested with latest 3.8)
+bot.py
 
-install discord.py
+Libraries used:
 
-install giphy client
+discord.py
 
-install requests
+giphy client
 
-install moviepy
+requests
 
-install Pillow
+moviepy
 
-run bot.py
+Pillow
