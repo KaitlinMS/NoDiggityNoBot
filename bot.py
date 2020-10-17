@@ -116,7 +116,6 @@ async def check_reactions_all_channels(m, user):
             await m.clear_reaction('🎴')
             await m.add_reaction('🤖')
 
-
 async def init_channels(message):
     bot.debug_output_channel = discord.utils.get(bot.server.text_channels, name=bot.debug_output_channel_name)
     if bot.debug_output_channel == None:
@@ -180,48 +179,6 @@ async def bot_say(content, channel):
     bot_starter = bot_blorps[random_index]
 
     await channel.send('{0}... {1}'.format(bot_starter, content))
-
-async def debug_commands(message):
-    if message.channel != bot.command_channel and message.channel != bot.debug_output_channel:
-        return
-
-    lower_message = message.content.lower()
-    if lower_message == "help":
-        output = ['🤖 **NoDiggityNoBot Help** 🤖']
-
-        output.append("\n\n**Anything you type into #bot-loudspeaker, the bot will yell into #general!**")
-
-        output.append("\n\n**AVAILABLE COMMANDS IN: *#bot-debug-output***")
-        output.append("\n **Help** \n- See this text.")
-        output.append("\n **Test** \n- Check if I'm alive")
-
-        output.append("\n\n**AVAILABLE COMMANDS IN: *#bot-commands***")
-        output.append("\n **Help** \n- See this text.")
-        output.append("\n **Test** \n- Check if I'm alive")
-        output.append("\n **Summon +'Cool  Movie Channel---Name!! 🤖'** \n- Creates a new movie channel for the night; name will be formatted to Discord channel rules (ex:cool-movie-channel-name-🤖)")
-        output.append("\n **Status Report** OR **Movie Status** OR **Status** \n- Sends a message to #general with the current movie standings")
-        output.append("\n **Short List** \n- Collects all the non-vetoed movies and chooses all with the top 3 vote counts. Sends a message to #Operations with the content for human emojification")
-        output.append("\n **Final Vote** \n- Creates a final vote in #general using the short list and supplied emojis")
-        output.append("\n **Decide** \n- Calls the winner and asks Kat for the time")
-        
-        output.append("\n\n**AVAILABLE COMMANDS IN: *#general***")
-        output.append("\n **Status Report** OR **Movie Status** \n- Sends a message to #general with the current movie standings")
-
-        output.append("\n\n**AVAILABLE COMMANDS IN: *all channels***")
-        output.append("\n **Gif Shield** OR **Shield** OR **No Paul** \n- Defends eyeballs and spirits by denying users their freedom of expression")
-
-        output.append("\n\n🤖 💛 🤖 💛 🤖")
-        
-        separator = '\n'
-        await bot.debug_output_channel.send(separator.join(output))
-
-    if lower_message == "test":
-        output = ["{0}! Your voice has been heard".format(message.author)]
-        output.append("The bot is running and appears to be in good health.")
-        output.append("The current movie channel is set to {0}".format(bot.movie_channel))
-        
-        separator = '\n'
-        await bot.debug_output_channel.send(separator.join(output))
 
 async def loud_speaker(message):
     if message.channel == bot.loudspeaker_channel:
@@ -423,7 +380,7 @@ async def short_list_command(message):
         await bot.movie_channel.edit(category=new_category)
 
 async def matt_firsteenth(message):
-    if message.channel != bot.command_channel and message.channel != bot.general_channel:
+    if message.channel != bot.general_channel:
         return
 
     lower_message = message.content.lower()
@@ -433,7 +390,6 @@ async def matt_firsteenth(message):
         embed = discord.Embed()
         embed.set_image(url="attachment://MattFirsteenth.gif")
         await bot.general_channel.send(content="same day it was yesterday; same day it's going to be tomorrow:", file=file)
-
 
 async def final_vote_command(message):
     if message.channel != bot.command_channel:
@@ -662,11 +618,11 @@ async def movie_channel_creation_and_assignment(message):
     if message.channel != bot.command_channel:
         return
 
-    submissions_category = discord.utils.get(bot.server.categories, name='submissions')
-
     summon_movie_night_message = 'Summon'
-    if message.content.find(summon_movie_night_message) >= 0:
+    if message.content.find('Summon') >= 0 or message.content.find('summon')>= 0 and message.content.find('help')< 0:
         if bot.movie_channel == None:
+            submissions_category = discord.utils.get(bot.server.categories, name='submissions')
+
             new_channel_name = message.content.replace(summon_movie_night_message, '')
             new_channel_name = new_channel_name.strip()
 
@@ -682,7 +638,7 @@ async def movie_channel_creation_and_assignment(message):
             separator = '\n'
             await bot.general_channel.send(separator.join(output))
         else:
-            await bot_say("someone tried to create a movie channel, but one already exists! consider using the 'Set Movie Channel' command or use 'Help' for more tips!", bot.debug_output_channel)
+            await bot_say("someone tried to create a movie channel, but one already exists!", bot.debug_output_channel)
 
 async def movie_channel_management(message):
     if message.channel != bot.movie_channel:
@@ -827,6 +783,94 @@ def download(url: str, dest_folder: str, filename: str):
     return False
 
 #----------------------------------------------------------------------------------------
+#-------------------------- D E B U G --- C O M M A N D S -------------------------------
+#----------------------------------------------------------------------------------------
+
+async def debug_test_command(message):
+    if message.channel != bot.command_channel and message.channel != bot.debug_output_channel:
+        return
+
+    lower_message = message.content.lower()
+    if lower_message == "test":
+        output = ["{0}! your voice has been heard".format(message.author)]
+        submissions_category = discord.utils.get(bot.server.categories, name='submissions')
+        channels = submissions_category.channels
+        if len(channels) == 0:
+            output.append("found no channel(s) in the 'submissions' category")
+        else:
+            output.append("the current movie channel is set to {0}".format(bot.movie_channel))
+        
+        separator = '\n'
+        await message.channel.send(separator.join(output))
+
+async def debug_help_command(message):
+    lower_message = message.content.lower()
+    if lower_message == "help" or lower_message == "/help":
+        separator = '\n'
+        if message.channel == bot.command_channel or message.channel == bot.debug_output_channel:
+            output = ['🤖 **NoDiggityNoBot Help** 🤖']
+
+            output.append("\n\n**hi! i'm nodiggs, and i can help you manage movie night!")
+
+            output.append("\n\n**AMBIENT FEATURES:")
+            output.append("\ni will react to any message that i think mentions me")
+            output.append("\nanything you react to with '🎴'' i will react convert to my emoji")
+            output.append("\nif there is a solo channel in category:SUBMISSIONS, it will be assumed as the movie channel")
+            output.append("\ndon't be a jerk")
+
+            output.append("\n\n**AVAILABLE COMMANDS IN: *#bot-commands***")
+            output.append("\n**help OR /help** \n- you're looking at it.")
+            output.append("\n**test** \n- check my status")
+            output.append("\n**summon +'Cool  Movie Channel---Name!! 🤖'**\n-creates a new movie channel for the night\n-name will be formatted to discord channel rules:\n--(ex:cool-movie-channel-name-🤖)\n-general is notified that movie night has begun!")
+            output.append("\n**short list** \n- collects all the non-vetoed movies and filters all with the top 3 vote counts. sends a message to #operations with the content for human emojification\n--last reaction emoji on each movie message in #operations will be treated as movie_name.emoji_icon for final vote")
+            output.append("\n**final vote** \n- creates a final vote in #general using the short list and supplied emojis from #operations")
+            output.append("\n**decide** \n- calls the winner; asks Ruth for help if there is a tie; asks Kat for the time")
+            output.append("\n**status report** OR **movie status** OR **status** \n- sends a message to #general with the current movie standings")
+            output.append("\n**preview** \n- creates a gif preview of one of the movies in the movie channel\n")
+            
+            await message.channel.send(separator.join(output))
+
+            output = []
+
+            output.append("\n**AVAILABLE COMMANDS IN #bot-debug-output***")
+            output.append("\n**help OR /help** \n- you're looking at it")
+            output.append("\n**test** \n- check my status")
+
+            output.append("\n\n**AVAILABLE COMMANDS IN: *#general***")
+            output.append("\n**help OR /help**\n- you're looking at it")
+            output.append("\n**status report** OR **movie status** OR **status** \n- sends a message to #general with the current movie standings")
+            output.append("\n**preview**\n- creates a gif preview of one of the movies in the movie channel")
+            output.append("\n**'what' + 'day' - ' a '**\n- i tell you what day it is")
+            output.append("\n**'.......' + alert**\n- i will try to properly alert you!")
+
+            output.append("\n\n**AVAILABLE COMMANDS IN: *all channels***")
+            output.append("\n**censor** OR **gif shield** OR **shield** OR **no paul**\n- i defend eyeballs and spirits by denying users their freedom of expression")
+
+            output.append("\n\n🤖 💛 🤖 💛 🤖")
+
+            await message.channel.send(separator.join(output))
+
+        elif message.channel == bot.general_channel:
+            output = ['🤖 **NoDiggityNoBot Help** 🤖']
+
+            output.append("\n\n**hi! i'm nodiggs, and i can help you manage movie night!")
+
+            output.append("\n\n**AVAILABLE COMMANDS IN: *#general***")
+            output.append("\n**help**\n- you're looking at it")
+            output.append("\n**status report** OR **movie status** OR **status** \n- sends a message to #general with the current movie standings")
+            output.append("\n**preview**\n- creates a gif preview of one of the movies in the movie channel")
+            output.append("\n**'what' + 'day' - ' a '**\n- i tell you what day it is")
+            output.append("\n**'.......' + alert**\n- i will try to properly alert you!")
+
+            output.append("\n\n**AVAILABLE COMMANDS IN: *all channels***")
+            output.append("\n**censor** OR **gif shield** OR **shield** OR **no paul**\n- i defend eyeballs and spirits by denying users their freedom of expression")
+
+            output.append("\n\n🤖 💛 🤖 💛 🤖")
+
+            await message.channel.send(separator.join(output))
+    
+
+#----------------------------------------------------------------------------------------
 #-------------------------- D I S C O R D --- E V E N T S -------------------------------
 #----------------------------------------------------------------------------------------
 # Now we start listening to all the different Discord events!
@@ -863,7 +907,10 @@ async def on_message(message):
         await loud_speaker(message)
 
     if message != None:
-        await debug_commands(message)
+        await debug_help_command(message)
+
+    if message != None:
+        await debug_test_command(message)
 
     if message != None:
         await movie_channel_creation_and_assignment(message)
