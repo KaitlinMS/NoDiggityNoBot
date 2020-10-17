@@ -68,7 +68,6 @@ async def check_reactions(m, user):
     await check_reactions_all_channels(m, user)
 
 async def check_reactions_movie_channel(m, user):
-    print('test')
     if m.channel != bot.movie_channel:
         return
 
@@ -153,7 +152,7 @@ async def init_channels(message):
         await bot.debug_output_channel.send("🚨 found more than one movie channel in the 'submissions' category! make sure there is only one")
     #elif len(channels) == 0:
     #    await bot.debug_output_channel.send("🚨 found no channel(s) in the 'submissions' category! make sure there is one and only one")
-    else:    
+    elif len(channels) == 1:   
         bot.movie_channel = channels[0]
         #await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
 
@@ -345,9 +344,9 @@ async def upload_preview(movie_name):
     embed = discord.Embed()
     embed.set_image(url="attachment://preview.gif")
     if bot.proposed_movies[movie_name].vetoed == False:
-        await bot.general_channel.send(content="Coming soon, to a Netflix Movie Night near you:", file=file)
+        await bot.general_channel.send(content="coming soon, to a netflix movie night near you:", file=file)
     else:
-        await bot.general_channel.send(content="In Netflixes this fall, a film shat-on before it's time:", file=file)
+        await bot.general_channel.send(content="in netflixes this fall, a film shat-on before it's time:", file=file)
 
 async def status_report_command(message):
     if message.channel != bot.command_channel and message.channel != bot.general_channel:
@@ -422,6 +421,19 @@ async def short_list_command(message):
         await bot.general_channel.send("🗣️ first round voting is now closed friends! final vote coming up sooooon!")
         new_category = discord.utils.get(bot.server.categories, name='lieut-zone')
         await bot.movie_channel.edit(category=new_category)
+
+async def matt_firsteenth(message):
+    if message.channel != bot.command_channel and message.channel != bot.general_channel:
+        return
+
+    lower_message = message.content.lower()
+    if lower_message.find('what') >= 0 and lower_message.find('day') >= 0 and lower_message.find('what a') < 0:
+        file_path = os.path.join('Gifs', 'MattFirsteenth.gif')
+        file = discord.File(file_path, filename="MattFirsteenth.gif")
+        embed = discord.Embed()
+        embed.set_image(url="attachment://MattFirsteenth.gif")
+        await bot.general_channel.send(content="same day it was yesterday; same day it's going to be tomorrow:", file=file)
+
 
 async def final_vote_command(message):
     if message.channel != bot.command_channel:
@@ -879,6 +891,9 @@ async def on_message(message):
 
     if message != None:
         await alert_commands(message)
+
+    if message != None:
+        await matt_firsteenth(message)
 
 @bot.event
 async def on_message_delete(message):
