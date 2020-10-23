@@ -73,7 +73,7 @@ async def check_reactions_movie_channel(m, user):
 
     number_of_poops = 0
     number_of_votes = 0
-    
+
     highest_emoji_count = 0
 
     for r in m.reactions:
@@ -85,7 +85,6 @@ async def check_reactions_movie_channel(m, user):
     number_of_votes = highest_emoji_count
 
     if m.content in bot.proposed_movies:
-        print("here") 
         if number_of_poops > 0 and bot.proposed_movies[m.content].vetoed == False:
             bot.proposed_movies[m.content].vetoed = True
             await bot.general_channel.send('{0} has been 💩\'d by ||{1}||!'.format(m.content, user.display_name))
@@ -149,9 +148,9 @@ async def init_channels(message):
     channels = submissions_category.channels
     if len(channels) > 1:
         await bot.debug_output_channel.send("🚨 found more than one movie channel in the 'submissions' category! make sure there is only one")
-    #elif len(channels) == 0:
-    #    await bot.debug_output_channel.send("🚨 found no channel(s) in the 'submissions' category! make sure there is one and only one")
-    elif len(channels) == 1:   
+    elif len(channels) == 0:
+        bot.movie_channel = None
+    elif len(channels) == 1:
         bot.movie_channel = channels[0]
         #await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
 
@@ -170,7 +169,7 @@ async def bot_say(content, channel):
     '***whistle pop***',
     '***meep***',
     '***morp***',
-    '***meep morp***', 
+    '***meep morp***',
     '***beep beep***',
     '***boop***',
     '***bip bip***']
@@ -206,11 +205,7 @@ async def download_preview_command(message):
             await bot_say("attempting to generate preview for {}".format(movie_name), bot.debug_output_channel)
 
             while current_attempt < max_attempts:
-                horny_index = random.randrange(9)
-                if horny_index == 5:
-                    gif_url = await bot_gif("horny")
-                else:
-                    gif_url = await bot_gif("{0}".format(movie_name))
+                gif_url = await bot_gif("{0}".format(movie_name))
                 split_url = gif_url.split("-")
                 mod_url = 'https://media4.giphy.com/media/{}/giphy.gif'.format(split_url[len(split_url) - 1])
 
@@ -254,7 +249,7 @@ async def stitch_preview(movie_name):
         clip = VideoFileClip(clip_file_path)
         append_clip(clip)
 
-    text_card_size = int(bot.preview_size[0]/5), int(bot.preview_size[1]/5) # this is a hack to make text bigger without dealing with font size
+    text_card_size = int(bot.preview_size[0]/3), int(bot.preview_size[1]/3) # this is a hack to make text bigger without dealing with font size
     img = Image.new('RGB', (text_card_size[0], text_card_size[1]), color=0)
     text = movie_name.upper()
     draw = ImageDraw.Draw(img)
@@ -268,7 +263,7 @@ async def stitch_preview(movie_name):
     append_clip(clip)
 
     if not os.path.exists('StitchedPreview'):
-        os.makedirs('StitchedPreview') 
+        os.makedirs('StitchedPreview')
 
     dest_file_path = os.path.join('StitchedPreview', 'preview.gif')
 
@@ -293,7 +288,7 @@ async def stitch_preview(movie_name):
         print("failed to create a gif under 8mb")
         await bot_say("failed to generate a gif preview under 8mb after {0} attempts".format(attempt), bot.debug_output_channel)
     else:
-        await upload_preview(movie_name)            
+        await upload_preview(movie_name)
 
 async def upload_preview(movie_name):
     file_path = os.path.join('StitchedPreview', 'preview.gif')
@@ -332,14 +327,14 @@ async def status_report_command(message):
                 if key in bot.short_list:
                     if vote_count == 1:
                         output.append('{0}x1 - {1}'.format(emoji_icon, movie_name))
-                    elif vote_count > 1: 
+                    elif vote_count > 1:
                         output.append('{0}x{2} - {1}'.format(emoji_icon, movie_name, vote_count))
             else:
                 vetoed_movies[key] = bot.proposed_movies[key]
 
         if len(vetoed_movies) > 0:
             output.append('>>-- honourable pooptions --<<')
-            
+
             sorted_vetoed_proposals = {}
             for key in vetoed_movies:
                 sorted_vetoed_proposals[key] = vetoed_movies[key].votes
@@ -355,7 +350,7 @@ async def status_report_command(message):
                     output.append('💩{0}x1 - {1}'.format(emoji_icon, movie_name))
                 elif vote_count > 1:
                     output.append('💩{0}x{2} - {1}'.format(emoji_icon, movie_name, vote_count))
-                
+
         output.append('>>--------------------------------<<')
         separator = '\n'
         await bot.general_channel.send(separator.join(output))
@@ -498,34 +493,34 @@ async def bot_directed_messages(message):
     'bzzzt',
     'bzz',
     'robot',
-    'bot', 
-    'digg', 
-    'nodi', 
-    'nobo', 
-    'dig', 
-    'nod', 
-    'nodig', 
-    'diggs', 
-    'diggi', 
-    'bleep', 
-    'blorp', 
-    'meep', 
+    'bot',
+    'digg',
+    'nodi',
+    'nobo',
+    'dig',
+    'nod',
+    'nodig',
+    'diggs',
+    'diggi',
+    'bleep',
+    'blorp',
+    'meep',
     'morp']
 
     curse_keywords = [
     'shit',
-    'piss', 
-    'fuck', 
-    'cunt', 
-    'suck', 
-    'cock', 
-    'turd', 
-    'twat', 
-    'ass', 
-    'lick', 
-    'dick', 
-    'butt', 
-    'fuk', 
+    'piss',
+    'fuck',
+    'cunt',
+    'suck',
+    'cock',
+    'turd',
+    'twat',
+    'ass',
+    'lick',
+    'dick',
+    'butt',
+    'fuk',
     'FU',
     'bitch',
     'lame',
@@ -539,14 +534,14 @@ async def bot_directed_messages(message):
     kind_words = [
     'love',
     'neat',
-    'good', 
-    'great', 
-    'best', 
-    'wonderful', 
+    'good',
+    'great',
+    'best',
+    'wonderful',
     'breathtaking',
     'breath taking',
     'breath-taking',
-    'champ', 
+    'champ',
     'cool',
     'kind']
 
@@ -618,8 +613,13 @@ async def movie_channel_creation_and_assignment(message):
     if message.channel != bot.command_channel:
         return
 
-    summon_movie_night_message = 'Summon'
-    if message.content.find('Summon') >= 0 or message.content.find('summon')>= 0 and message.content.find('help')< 0:
+    summon_movie_night_message = ''
+    if message.content.find('Summon') >= 0 and message.content.find('help') < 0:
+      summon_movie_night_message = 'Summon'
+    elif message.content.find('summon') >= 0 and message.content.find('help') < 0:
+      summon_movie_night_message = 'summon'
+
+    if summon_movie_night_message != '':
         if bot.movie_channel == None:
             submissions_category = discord.utils.get(bot.server.categories, name='submissions')
 
@@ -627,7 +627,6 @@ async def movie_channel_creation_and_assignment(message):
             new_channel_name = new_channel_name.strip()
 
             bot.movie_channel = await bot.server.create_text_channel(new_channel_name)
-            await bot.movie_channel.edit(category=submissions_category)
 
             await bot.debug_output_channel.send('bot.movie_channel = {0.mention}'.format(bot.movie_channel))
             output = [">>----- 🦂 it's movie night!! 🦂 -----<<"]
@@ -637,6 +636,7 @@ async def movie_channel_creation_and_assignment(message):
 
             separator = '\n'
             await bot.general_channel.send(separator.join(output))
+            await bot.movie_channel.edit(category=submissions_category)
         else:
             await bot_say("someone tried to create a movie channel, but one already exists!", bot.debug_output_channel)
 
@@ -799,7 +799,7 @@ async def debug_test_command(message):
             output.append("found no channel(s) in the 'submissions' category")
         else:
             output.append("the current movie channel is set to {0}".format(bot.movie_channel))
-        
+
         separator = '\n'
         await message.channel.send(separator.join(output))
 
@@ -827,7 +827,7 @@ async def debug_help_command(message):
             output.append("\n**decide** \n- calls the winner; asks Ruth for help if there is a tie; asks Kat for the time")
             output.append("\n**status report** OR **movie status** OR **status** \n- sends a message to #general with the current movie standings")
             output.append("\n**preview** \n- creates a gif preview of one of the movies in the movie channel\n")
-            
+
             await message.channel.send(separator.join(output))
 
             output = []
@@ -868,7 +868,7 @@ async def debug_help_command(message):
             output.append("\n\n🤖 💛 🤖 💛 🤖")
 
             await message.channel.send(separator.join(output))
-    
+
 
 #----------------------------------------------------------------------------------------
 #-------------------------- D I S C O R D --- E V E N T S -------------------------------
@@ -953,7 +953,7 @@ async def on_raw_reaction_add(payload):
     message = await channel.fetch_message(payload.message_id)
     user = bot.get_user(payload.user_id)
     await check_reactions(message, user)
-    
+
 @bot.event
 async def on_raw_reaction_remove(payload):
     channel = bot.get_channel(payload.channel_id)
