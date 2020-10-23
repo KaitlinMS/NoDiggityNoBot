@@ -3,6 +3,7 @@ import requests
 import discord
 import random
 import giphy_client
+import asyncio
 from moviepy.editor import *
 from moviepy.video.fx.all import *
 from PIL import Image, ImageDraw
@@ -426,6 +427,50 @@ async def decide_command(message):
                 if bot.short_list[key].emoji_icon == top_reaction.emoji:
                     await bot_say("alright folks, looks like it's **{}** tonight!".format(bot.short_list[key].movie_name), bot.general_channel)
                     await bot_say("{0.mention}, what time is it?!?!".format(bot.get_user(639547102023647233)), bot.general_channel)
+
+async def coin_flip(message):
+    if message.channel != bot.command_channel and message.channel != bot.general_channel:
+        return
+
+    lower_message = message.content.lower()
+    if lower_message == 'coin flip' or lower_message == 'flip a coin':
+        await bot.debug_output_channel.send('initiating coin flip!')
+
+        file_path = os.path.join('CoinFlip', 'flip_start.gif')
+        file = discord.File(file_path, filename="flip_start.gif")
+        embed = discord.Embed()
+        embed.set_image(url="attachment://flip_start.gif")
+        await bot.general_channel.send(file=file)
+        await asyncio.sleep(5)
+
+        file_path = os.path.join('CoinFlip', 'flip_spin_0.gif')
+        file = discord.File(file_path, filename="flip_spin_0.gif")
+        embed = discord.Embed()
+        embed.set_image(url="attachment://flip_spin_0.gif")
+        await bot.general_channel.send(file=file)
+        await asyncio.sleep(5.5)
+
+        file_path = os.path.join('CoinFlip', 'flip_spin_1.gif')
+        file = discord.File(file_path, filename="flip_spin_1.gif")
+        embed = discord.Embed()
+        embed.set_image(url="attachment://flip_spin_1.gif")
+        await bot.general_channel.send(file=file)
+        await asyncio.sleep(5.5)
+
+        result = random.randrange(2)
+
+        if result == 0:
+            file_path = os.path.join('CoinFlip', 'flip_heads.gif')
+            file = discord.File(file_path, filename="flip_heads.gif")
+            embed = discord.Embed()
+            embed.set_image(url="attachment://flip_heads.gif")
+            await bot.general_channel.send(file=file)
+        else:
+            file_path = os.path.join('CoinFlip', 'flip_tails.gif')
+            file = discord.File(file_path, filename="flip_tails.gif")
+            embed = discord.Embed()
+            embed.set_image(url="attachment://flip_tails.gif")
+            await bot.general_channel.send(file=file)
 
 async def censor(message):
     lower_message = message.content.lower()
@@ -941,6 +986,9 @@ async def on_message(message):
 
     if message != None:
         await matt_firsteenth(message)
+
+    if message != None:
+        await coin_flip(message)
 
 @bot.event
 async def on_message_delete(message):
