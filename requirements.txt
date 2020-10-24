@@ -1,0 +1,6 @@
+###### Required Packages ######
+discord.py
+giphy_client
+requests
+moviepy
+Pillow
