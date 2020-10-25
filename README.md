@@ -1,17 +1,24 @@
 # NoDiggityNoBot
 
-Tested using Python 3.7/3.8
+Tested using Python 3.7/3.8.
 
-bot.py
+## Setting Up the Bot
 
-Libraries used:
+In Terminal or Command prompt, run:
+```
+pip install -r requirements.txt
+```
 
-discord.py
+## Running the Bot
 
-giphy client
+In Terminal on a Mac, navigate to the directory and run:
+```
+python3 bot.py
+```
 
-requests
+In the Command Prompt on Windows, navigate to the directory and run:
+```
+python bot.py
+```
 
-moviepy
-
-Pillow
+After running this, the bot will log into Discord, and you should see it in the list of online users in your server.
