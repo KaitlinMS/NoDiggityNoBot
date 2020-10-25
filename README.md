@@ -18,7 +18,7 @@ python3 bot.py
 
 In the Command Prompt on Windows, navigate to the directory and run:
 ```
-py bot.py
+python bot.py
 ```
 
 After running this, the bot will log into Discord, and you should see it in the list of online users in your server.
