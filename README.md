@@ -16,7 +16,7 @@ In Terminal on a Mac, navigate to the directory and run:
 python3 bot.py
 ```
 
-In the Command Prompt on Windows, navigate to the directory and run:
+In the Command Prompt or Power Shell on Windows, navigate to the directory and run:
 ```
 python bot.py
 ```

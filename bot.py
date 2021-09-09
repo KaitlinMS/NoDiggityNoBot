@@ -10,10 +10,15 @@ from PIL import Image, ImageDraw
 from giphy_client.rest import ApiException
 from pprint import pprint
 
+# Set up intents
+intents = discord.Intents.default()
+intents.members = True # Lets us @ people. There is also a required setting in the Discord app portal.
+
+
 TOKEN = 'NzA4NTExMjc1NjQxOTk1Mjg1.XrYa7Q.CsHp1Qym_MWG6t233YdZvGAldcU'
 
 # Create an instance of the bot
-bot = discord.Client();
+bot = discord.Client(intents = intents);
 
 bot.server = None
 
