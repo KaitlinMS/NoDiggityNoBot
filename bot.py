@@ -4,6 +4,9 @@ import discord
 import random
 import giphy_client
 import asyncio
+from discord.ext import commands
+from discord_slash import SlashCommand, SlashContext
+from discord_slash.utils.manage_commands import create_choice, create_option
 from moviepy.editor import *
 from moviepy.video.fx.all import *
 from PIL import Image, ImageDraw
@@ -14,11 +17,14 @@ from pprint import pprint
 intents = discord.Intents.default()
 intents.members = True # Lets us @ people. There is also a required setting in the Discord app portal.
 
-
 TOKEN = 'NzA4NTExMjc1NjQxOTk1Mjg1.XrYa7Q.CsHp1Qym_MWG6t233YdZvGAldcU'
 
 # Create an instance of the bot
-bot = discord.Client(intents = intents);
+bot = discord.Client(intents = intents, command_prefix = "!")
+
+slash = SlashCommand(bot, sync_commands = True)
+
+guild_ids = [708518179642540084, 693562969472368761]
 
 bot.server = None
 
@@ -306,60 +312,62 @@ async def upload_preview(movie_name):
     else:
         await bot.general_channel.send(content="in netflixes this fall, a film shat-on before it's time:", file=file)
 
-async def status_report_command(message):
-    if message.channel != bot.command_channel and message.channel != bot.general_channel:
-        return
+@slash.slash(
+    name = "status",
+    description = "Get the current top movie contenders",
+    guild_ids = guild_ids
+)
 
-    lower_message = message.content.lower()
-    if lower_message == 'movie status' or lower_message == 'status report' or lower_message == 'status':
-        await populate_proposed_movie_list()
-        await populate_short_list()
-        vetoed_movies = {}
-        output = ['>>- 🌟 the current status 🌟 -<<']
+async def _status(ctx:SlashContext):
+    await populate_proposed_movie_list()
+    await populate_short_list()
+    vetoed_movies = {}
+    output = ['>>- 🌟 the current status 🌟 -<<']
 
-        sorted_movie_proposals = {}
-        for key in bot.proposed_movies:
-            sorted_movie_proposals[key] = bot.proposed_movies[key].votes
+    sorted_movie_proposals = {}
+    for key in bot.proposed_movies:
+        sorted_movie_proposals[key] = bot.proposed_movies[key].votes
 
-        sorted_movie_proposals = sorted(sorted_movie_proposals.items(), key=lambda x: x[1], reverse=True)
+    sorted_movie_proposals = sorted(sorted_movie_proposals.items(), key=lambda x: x[1], reverse=True)
 
-        for obj in sorted_movie_proposals:
+    for obj in sorted_movie_proposals:
+        key = obj[0]
+        movie_name = bot.proposed_movies[key].movie_name
+        vote_count = bot.proposed_movies[key].votes
+        emoji_icon = bot.proposed_movies[key].emoji_icon
+
+        if bot.proposed_movies[key].vetoed == False:
+            if key in bot.short_list:
+                if vote_count == 1:
+                    output.append('{0}x1 - {1}'.format(emoji_icon, movie_name))
+                elif vote_count > 1:
+                    output.append('{0}x{2} - {1}'.format(emoji_icon, movie_name, vote_count))
+        else:
+            vetoed_movies[key] = bot.proposed_movies[key]
+
+    if len(vetoed_movies) > 0:
+        output.append('>>-- honourable pooptions --<<')
+
+        sorted_vetoed_proposals = {}
+        for key in vetoed_movies:
+            sorted_vetoed_proposals[key] = vetoed_movies[key].votes
+
+        sorted_vetoed_proposals = sorted(sorted_vetoed_proposals.items(), key=lambda x: x[1], reverse=True)
+
+        for obj in sorted_vetoed_proposals:
             key = obj[0]
             movie_name = bot.proposed_movies[key].movie_name
             vote_count = bot.proposed_movies[key].votes
             emoji_icon = bot.proposed_movies[key].emoji_icon
+            if vote_count == 1:
+                output.append('💩{0}x1 - {1}'.format(emoji_icon, movie_name))
+            elif vote_count > 1:
+                output.append('💩{0}x{2} - {1}'.format(emoji_icon, movie_name, vote_count))
 
-            if bot.proposed_movies[key].vetoed == False:
-                if key in bot.short_list:
-                    if vote_count == 1:
-                        output.append('{0}x1 - {1}'.format(emoji_icon, movie_name))
-                    elif vote_count > 1:
-                        output.append('{0}x{2} - {1}'.format(emoji_icon, movie_name, vote_count))
-            else:
-                vetoed_movies[key] = bot.proposed_movies[key]
+    output.append('>>--------------------------------<<')
+    separator = '\n'
 
-        if len(vetoed_movies) > 0:
-            output.append('>>-- honourable pooptions --<<')
-
-            sorted_vetoed_proposals = {}
-            for key in vetoed_movies:
-                sorted_vetoed_proposals[key] = vetoed_movies[key].votes
-
-            sorted_vetoed_proposals = sorted(sorted_vetoed_proposals.items(), key=lambda x: x[1], reverse=True)
-
-            for obj in sorted_vetoed_proposals:
-                key = obj[0]
-                movie_name = bot.proposed_movies[key].movie_name
-                vote_count = bot.proposed_movies[key].votes
-                emoji_icon = bot.proposed_movies[key].emoji_icon
-                if vote_count == 1:
-                    output.append('💩{0}x1 - {1}'.format(emoji_icon, movie_name))
-                elif vote_count > 1:
-                    output.append('💩{0}x{2} - {1}'.format(emoji_icon, movie_name, vote_count))
-
-        output.append('>>--------------------------------<<')
-        separator = '\n'
-        await bot.general_channel.send(separator.join(output))
+    await ctx.send(separator.join(output))
 
 async def short_list_command(message):
     if message.channel != bot.command_channel:
@@ -967,9 +975,6 @@ async def on_message(message):
 
     if message != None:
         await movie_channel_management(message)
-
-    if message != None:
-        await status_report_command(message)
 
     if message != None:
         await short_list_command(message)

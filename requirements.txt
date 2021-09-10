@@ -4,3 +4,4 @@ giphy_client
 requests
 moviepy
 Pillow
+discord-py-slash-command
