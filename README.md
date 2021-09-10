@@ -1,13 +1,9 @@
 # NoDiggityNoBot
 
-Tested using Python 3.7/3.8.
-
 ## Setting Up the Bot
 
-In Terminal or Command prompt, run:
-```
-pip install -r requirements.txt
-```
+The discord.js guide has great installation instructions for Windows, MacOS, and Linux here:
+https://discordjs.guide/preparations/#installing-node-js
 
 ## Running the Bot
 
