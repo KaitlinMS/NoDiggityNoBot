@@ -2,6 +2,8 @@
 
 Tested using Python 3.7/3.8.
 
+A JS rewrite of the bot was started but we never totally made the switch: https://github.com/KaitlinMS/nodiggs-v2
+
 ## Setting Up the Bot
 
 In Terminal or Command prompt, run:
