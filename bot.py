@@ -15,7 +15,7 @@ intents = discord.Intents.default()
 intents.members = True # Lets us @ people. There is also a required setting in the Discord app portal.
 
 
-TOKEN = 'NzA4NTExMjc1NjQxOTk1Mjg1.XrYa7Q.CsHp1Qym_MWG6t233YdZvGAldcU'
+TOKEN = ''
 
 # Create an instance of the bot
 bot = discord.Client(intents = intents);
